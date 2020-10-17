@@ -5,7 +5,7 @@ run:
 
 .PHONY: k6-test
 k6-test:
-	docker run -i loadimpact/k6 run --vus 10 --duration 30s - <week2/script.js
+	docker run -i loadimpact/k6 run - <week2/script.js
 
 .PHONY: week2
 week2:
@@ -15,4 +15,4 @@ week2:
 .PHONY: test
 test:
 	cd ./docker/k6-docker && \
-	docker-compose run -v `pwd`/../../week2:/scripts k6 run --vus 10 --duration 30s /scripts/script.js
+	docker-compose run -v `pwd`/../../week2:/scripts k6 run /scripts/script.js
