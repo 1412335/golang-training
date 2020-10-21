@@ -16,3 +16,13 @@ week2:
 test:
 	cd ./docker/k6-docker && \
 	docker-compose run -v `pwd`/../../week2:/scripts k6 run /scripts/script.js
+
+mysql:
+	docker-compose down && \
+	docker-compose up -d db
+app:
+	docker-compose up -d goapp mytop --build
+goapp:
+	docker exec -ti golang-traning-week3 sh
+
+.PHONY: mysql app goapp

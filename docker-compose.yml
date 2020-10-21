@@ -1,0 +1,32 @@
+version: "3"
+services:
+  db:
+    image: mysql:5.7.26
+    container_name: mysql
+    environment:
+      - MYSQL_ROOT_HOST=${DB_HOST} 
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+  goapp:
+    image: golang-traning:week3
+    container_name: golang-traning-week3
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # command: ["./myapp", "migrate"]
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+  mytop:
+    image: srcoder/mytop
+    container_name: mytop
+    command: ["-h", "${DB_HOST}", "-p", "${DB_PORT}", "-u", "${DB_USER}", "-p", "${DB_PASSWORD}"]
+    volumes:
+        - ./docker/mytop/.mytop:/root/.mytop
+    depends_on:
+      - db
