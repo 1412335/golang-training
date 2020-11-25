@@ -17,6 +17,7 @@ test:
 	cd ./docker/k6-docker && \
 	docker-compose run -v `pwd`/../../week2:/scripts k6 run /scripts/script.js
 
+# database (mysql + gorm + mytop)
 mysql:
 	docker-compose down && \
 	docker-compose up -d db

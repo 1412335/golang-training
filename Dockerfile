@@ -19,7 +19,7 @@ COPY . /myapp
 RUN ls $GOPATH/src
 
 # Build the binary.
-RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -ldflags="-w -s" -o /go/bin/myapp week2/db/main.go
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -ldflags="-w -s" -o /go/bin/myapp week2/main.go
 
 ############################
 # STEP 2 build a small image
@@ -43,7 +43,7 @@ COPY --from=builder /myapp/.env .
 # Run the hello binary. 
 EXPOSE 8080
 
-CMD exec /bin/sh -c "trap : TERM INT; (while true; do sleep 1000; done) & wait"
-# ENTRYPOINT ["./myapp"]
+# CMD exec /bin/sh -c "trap : TERM INT; (while true; do sleep 1000; done) & wait"
+ENTRYPOINT ["./myapp"]
 # CMD -grpc-port=$GRPC_PORT
 # CMD ["sh", "-c", "/root/myapp -grpc-port=$GRPC_PORT"]
