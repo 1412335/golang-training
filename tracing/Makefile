@@ -2,6 +2,7 @@ all: default
 
 .PHONY: formatter
 formatter:
+	# go run ./pkg/cmd/formatter.go
 	go run ./formatter/formatter.go
 
 .PHONY: publisher

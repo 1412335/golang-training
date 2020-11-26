@@ -23,8 +23,8 @@ func (h *HTTPClient) Do(ctx context.Context, url string) ([]byte, error) {
 		return nil, err
 	}
 
-	req = req.WithContext(ctx) // extend existing trace, if any
-	req, ht := nethttp.TraceRequest(h.Tracer, req)
+	req = req.WithContext(ctx)
+	req, ht := nethttp.TraceRequest(h.Tracer, req, nethttp.OperationName("HTTP GET: "+url))
 	defer ht.Finish()
 
 	// pass context to child service
