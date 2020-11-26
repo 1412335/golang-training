@@ -49,3 +49,19 @@ cd jaeger/examples/hotrod
 - https://github.com/opentracing/specification/blob/master/semantic_conventions.md
 
 - https://www.jaegertracing.io/docs/1.17/sampling/
+
+
+## Make span
+```go
+// from parent span
+span := rootSpan.Tracer().StartSpan(
+	"formatString",
+	opentracing.ChildOf(rootSpan.Context()),
+)
+// from context
+span, _ := opentracing.StartSpanFromContext(ctx, "formatString")
+defer span.Finish()
+
+// get span
+span := opentracing.SpanFromContext(req.Context())
+```

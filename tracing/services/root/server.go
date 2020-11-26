@@ -1,11 +1,11 @@
 package root
 
 import (
-	"context"
+	"encoding/json"
 	"golang-training/tracing/pkg/log"
 	"golang-training/tracing/pkg/tracing"
 	"net/http"
-	"net/url"
+	"strconv"
 
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
@@ -13,11 +13,14 @@ import (
 )
 
 type Server struct {
-	ctx           context.Context
-	host          string
-	tracer        opentracing.Tracer
-	httpClient    *tracing.HTTPClient
-	logger        log.Factory
+	host       string
+	tracer     opentracing.Tracer
+	httpClient *tracing.HTTPClient
+	logger     log.Factory
+	service    *service
+}
+
+type Config struct {
 	formatterHost string
 	publisherHost string
 }
@@ -30,14 +33,17 @@ func NewServer(host string, tracer opentracing.Tracer, logger log.Factory, forma
 			Client: &http.Client{Transport: &nethttp.Transport{}},
 			Tracer: tracer,
 		},
-		logger:        logger,
-		formatterHost: formatterHost,
-		publisherHost: publisherHost,
+		service: newService(tracer, logger, Config{
+			formatterHost: formatterHost,
+			publisherHost: publisherHost,
+		}),
+		logger: logger,
 	}
 }
 
 func (s *Server) Run() error {
 	mux := s.createServerMux()
+	s.logger.Bg().Info("Starting server", zap.String("host", s.host))
 	return http.ListenAndServe(s.host, mux)
 }
 
@@ -49,57 +55,55 @@ func (s *Server) createServerMux() http.Handler {
 
 func (s *Server) format(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	// span := rootSpan.Tracer().StartSpan(
-	// 	"formatString",
-	// 	opentracing.ChildOf(rootSpan.Context()),
-	// )
-	// span, _ := opentracing.StartSpanFromContext(ctx, "formatString")
-	// defer span.Finish()
+	s.logger.For(ctx).Info("HTTP request received", zap.String("method", r.Method), zap.Stringer("url", r.URL))
 
-	// get child span
-	// span := opentracing.SpanFromContext(req.Context())
-	s.logger.For(ctx).Info("Internal request received", zap.String("method", "format"))
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.logger.For(ctx).Error("bad request", zap.Error(err))
+		return
+	}
+
+	helloTo := r.URL.Query().Get("helloTo")
+	if helloTo == "" {
+		http.Error(w, "missing helloTo", http.StatusBadRequest)
+		return
+	}
+
+	greeting := r.URL.Query().Get("greeting")
+
+	num := int32(1)
+	numStr := r.URL.Query().Get("num")
+	if numStr != "" {
+		if i, err := strconv.Atoi(numStr); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			s.logger.For(ctx).Error("parse num to int failed", zap.Error(err))
+			return
+		} else {
+			num = int32(i)
+		}
+	}
 
 	// do request to formatter service
-	v := url.Values{}
-	v.Set("helloTo", "namnn")
-	// url := s.formatterHost + "/format?" + v.Encode()
-	url := "http://localhost:8084/format?" + v.Encode()
-	resp, err := s.httpClient.Do(ctx, url)
+	resp, err := s.service.Get(ctx, helloTo, greeting, num)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		s.logger.For(ctx).Error("HTTP request failed", zap.Error(err))
 		return
 	}
 
-	helloStr := string(resp)
 	// client logs span
-	s.logger.For(ctx).Info("Internal response", zap.String("helloStr", helloStr))
+	s.logger.For(ctx).Info("response", zap.Strings("helloStr", resp))
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(helloStr))
+	s.writeResponse(resp, w, r)
 }
 
-func (s *Server) printHello(helloStr string) {
-	// span := rootSpan.Tracer().StartSpan(
-	// 	"printHello",
-	// 	opentracing.ChildOf(rootSpan.Context()),
-	// )
-
-	// span, _ := opentracing.StartSpanFromContext(ctx, "printHello")
-	// defer span.Finish()
-
-	// get root span
-	// span := opentracing.SpanFromContext(req.Context())
-	// span := opentracing.SpanFromContext(ctx)
-	s.logger.For(s.ctx).Info("Internal request received", zap.String("method", "print"))
-
-	v := url.Values{}
-	v.Set("helloStr", helloStr)
-	url := "http://localhost:8085/publish?" + v.Encode()
-	// url := s.publisherHost + "/publish?" + v.Encode()
-	_, err := s.httpClient.Do(s.ctx, url)
+func (s *Server) writeResponse(response interface{}, w http.ResponseWriter, r *http.Request) {
+	data, err := json.Marshal(response)
 	if err != nil {
-		// set span tag error=true
-		s.logger.For(s.ctx).Error("HTTP request failed", zap.Error(err))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.logger.For(r.Context()).Error("cannot marshal response", zap.Error(err))
+		return
 	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
 }

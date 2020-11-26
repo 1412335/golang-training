@@ -23,3 +23,7 @@ backend:
 		-p6831:6831/udp \
 		-p16686:16686 \
 		jaegertracing/all-in-one:latest
+
+.PHONY: genproto
+genproto:
+	protoc.exe -I ./services/publisher/proto/ --go_out=plugins=grpc:./services/publisher ./services/publisher/proto/*.proto

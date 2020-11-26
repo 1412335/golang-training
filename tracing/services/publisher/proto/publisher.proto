@@ -1,0 +1,17 @@
+syntax="proto3";
+package publisher;
+
+option go_package = "publisher";
+
+message EchoRequest {
+    string helloStr = 1;
+    int32 num = 2;
+}
+
+message EchoResponse {
+    repeated string helloStr = 1;
+}
+
+service PublisherService {
+    rpc Echo (EchoRequest) returns (EchoResponse);
+}

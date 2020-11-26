@@ -96,8 +96,8 @@ func RootWeb() {
 		host,
 		tracing.Init("root", metricsFactory, logger),
 		logger,
-		net.JoinHostPort("http://localhost", strconv.Itoa(formatterPort)),
-		net.JoinHostPort("http://localhost", strconv.Itoa(publisherPort)),
+		net.JoinHostPort("localhost", strconv.Itoa(formatterPort)),
+		net.JoinHostPort("localhost", strconv.Itoa(publisherPort)),
 	)
 	logError(zapLogger, server.Run())
 }

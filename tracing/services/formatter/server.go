@@ -26,6 +26,7 @@ func NewServer(host string, tracer opentracing.Tracer, logger log.Factory) *Serv
 
 func (s *Server) Run() error {
 	mux := s.createServerMux()
+	s.logger.Bg().Info("Starting server", zap.String("host", s.host))
 	return http.ListenAndServe(s.host, mux)
 }
 
