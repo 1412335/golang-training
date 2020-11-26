@@ -19,8 +19,10 @@ func Init(serviceName string, metricsFactory metrics.Factory, logger log.Factory
 		logger.Bg().Fatal("cannot parse Jaeger env vars", zap.Error(err))
 	}
 	cfg.ServiceName = serviceName
-	cfg.Sampler.Type = "const"
-	cfg.Sampler.Param = 1
+	cfg.Sampler.Type = "remote"
+	// cfg.Sampler.Param = 1
+
+	logger.Bg().Info("jaeger config", zap.Any("config", cfg))
 
 	// TODO(ys) a quick hack to ensure random generators get different seeds, which are based on current time.
 	time.Sleep(100 * time.Millisecond)

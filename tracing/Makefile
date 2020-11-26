@@ -16,13 +16,25 @@ default:
 
 .PHONY: backend
 backend:
-	 docker run \
+	docker run \
 		-d \
 	 	--rm \
 		--name jaeger \
 		-p6831:6831/udp \
 		-p16686:16686 \
 		jaegertracing/all-in-one:latest
+
+.PHONY: up
+up:
+	docker-compose -f ./docker/jaeger-elasticsearch_2.yml up -d
+
+.PHONY: ps
+ps:
+	docker-compose -f ./docker/jaeger-elasticsearch_2.yml ps
+
+.PHONY: down
+down:
+	docker-compose -f ./docker/jaeger-elasticsearch_2.yml down
 
 .PHONY: genproto
 genproto:

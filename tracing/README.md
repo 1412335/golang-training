@@ -36,6 +36,9 @@ cd jaeger/examples/hotrod
 
 ## Sampling Strategies
 ```
+# https://www.jaegertracing.io/docs/1.21/sampling/#collector-sampling-configuration
+cfg.Sampler.Type = "remote"
+# add command arguments in collector
 --sampling.strategies-file=/etc/jaeger/sampling_strategies.json
 ```
 
