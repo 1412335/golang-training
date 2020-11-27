@@ -46,37 +46,37 @@ services:
     image: mine/tracing-formatter:latest
     container_name: formatter
     build:
-      context: ../../
+      context: ../../../
       dockerfile: Dockerfile.tracing
     command: ["formatter"]
     environment:
       - JAEGER_AGENT_HOST=jaeger
       - JAEGER_AGENT_PORT=6831
-    networks:
-      - jaeger-example
-    depends_on:
-      - jaeger
+    logging:
+      driver: loki
+      options:
+        loki-url: 'http://localhost:3100/api/prom/push'
 
   publisher:
     image: mine/tracing-publisher:latest
     container_name: publisher
     build:
-      context: ../../
+      context: ../../../
       dockerfile: Dockerfile.tracing
     command: ["publisher"]
     environment:
       - JAEGER_AGENT_HOST=jaeger
       - JAEGER_AGENT_PORT=6831
-    networks:
-      - jaeger-example
-    depends_on:
-      - jaeger
+    logging:
+      driver: loki
+      options:
+        loki-url: 'http://localhost:3100/api/prom/push'
 
   app:
     image: mine/tracing-app:latest
     container_name: app
     build:
-      context: ../../
+      context: ../../../
       dockerfile: Dockerfile.tracing
     ports:
       - '8080:8080'

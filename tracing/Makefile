@@ -47,3 +47,7 @@ genproto:
 .PHONY: test
 test:
 	curl -v 'localhost:8080/format?helloTo=luyen&greeting=love&num=3'
+
+.PHONY: grafana
+grafana:
+	docker-compose -f ./docker/grafana-integration/docker-compose.yml up

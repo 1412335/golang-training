@@ -58,8 +58,8 @@ func initConfig() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/config.yml)")
-	rootCmd.PersistentFlags().StringVar(&metricsBackend, "metrics", "prometheus", "metrics backend expvar|prometheus (default: prometheus)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/config.yml)")
+	rootCmd.PersistentFlags().StringVarP(&metricsBackend, "metrics", "m", "prometheus", "metrics backend expvar|prometheus (default: prometheus)")
 
 	viper.BindPFlag("metrics", rootCmd.PersistentFlags().Lookup("metrics"))
 
