@@ -1,5 +1,11 @@
 # Jaeger - Open tracing
 
+## Running
+```sh
+# tracing jaeger + grafana + loki + prometheus
+make
+```
+
 ## Testing
 ```sh
 # jaeger
@@ -42,17 +48,15 @@ cfg.Sampler.Type = "remote"
 --sampling.strategies-file=/etc/jaeger/sampling_strategies.json
 ```
 
-## Tutorial
-- https://github.com/yurishkuro/opentracing-tutorial/tree/master/go
+## Tutorial 
+- [Hot R.O.D. - best](https://github.com/jaegertracing/jaeger/tree/master/examples/hotrod)
+- [opentracing-tutorial](https://github.com/yurishkuro/opentracing-tutorial/tree/master/go)
+- [example](https://medium.com/opentracing/tracing-http-request-latency-in-go-with-opentracing-7cc1282a100a)
 
 ## Ref
-- https://medium.com/opentracing/tracing-http-request-latency-in-go-with-opentracing-7cc1282a100a
-- https://github.com/jaegertracing/jaeger/tree/master/examples/hotrod
-- https://github.com/opentracing-contrib/go-stdlib
-- https://github.com/opentracing/specification/blob/master/semantic_conventions.md
-
-- https://www.jaegertracing.io/docs/1.17/sampling/
-
+- [go-stdlib net/http middleware](https://github.com/opentracing-contrib/go-stdlib)
+- [Opentracing semantic](https://github.com/opentracing/specification/blob/master/semantic_conventions.md)
+- [Sampling](https://www.jaegertracing.io/docs/1.17/sampling/)
 
 ## Make span
 ```go
