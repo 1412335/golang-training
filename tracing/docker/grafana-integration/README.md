@@ -5,7 +5,7 @@
 - [Logql](https://grafana.com/docs/loki/latest/logql/)
 
 ## Grafana
-- Dashboard: (import ./hotrod_metrics_logs.json)
+- Dashboard: [example](./grafana/dashboards/hotrod_metrics_logs.json)
 - Setup datasources.yaml: connect to container
 
 ## Prometheus
@@ -14,7 +14,7 @@
 ## Install
 
 1. Adding Loki as a Logging Driver
-```
+```sh
 docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
 
 # restart the docker daemon
@@ -24,7 +24,8 @@ docker plugin ls
 ```
 
 2. Using Loki
-```
+```sh
+# add to docker-compose
 logging:
   driver: loki
   options:

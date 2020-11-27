@@ -1,7 +1,7 @@
 # Jaeger - Open tracing
 
 ## Testing
-```
+```sh
 # jaeger
 docker run \
   --rm \
@@ -35,7 +35,7 @@ cd jaeger/examples/hotrod
 ```
 
 ## Sampling Strategies
-```
+```sh
 # https://www.jaegertracing.io/docs/1.21/sampling/#collector-sampling-configuration
 cfg.Sampler.Type = "remote"
 # add command arguments in collector
@@ -68,3 +68,6 @@ defer span.Finish()
 // get span
 span := opentracing.SpanFromContext(req.Context())
 ```
+
+## Grafana Integration
+[Guide](./docker/grafana-integration/README.md)
