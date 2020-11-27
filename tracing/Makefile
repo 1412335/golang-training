@@ -1,4 +1,8 @@
-all: default
+# all: default
+
+.PHONY: all
+all:
+	docker-compose up
 
 .PHONY: formatter
 formatter:
@@ -39,3 +43,7 @@ down:
 .PHONY: genproto
 genproto:
 	protoc.exe -I ./services/publisher/proto/ --go_out=plugins=grpc:./services/publisher ./services/publisher/proto/*.proto
+
+.PHONY: test
+test:
+	curl -v 'localhost:8080/format?helloTo=luyen&greeting=love&num=3'

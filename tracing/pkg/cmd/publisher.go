@@ -2,26 +2,34 @@ package cmd
 
 import (
 	"golang-training/tracing/pkg/log"
-	"golang-training/tracing/pkg/tracing"
 	"golang-training/tracing/services/publisher"
-	"net"
-	"strconv"
 
+	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
 
-func ServicePublisher() {
-	host := net.JoinHostPort("0.0.0.0", strconv.Itoa(publisherPort))
+func init() {
+	rootCmd.AddCommand(publisherCmd)
+}
 
+var publisherCmd = &cobra.Command{
+	Use:   "publisher",
+	Short: "Start Publisher Service",
+	Long:  `Start Publisher Service`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return ServicePublisher()
+	},
+}
+
+func ServicePublisher() error {
 	// create log factory
-	serviceName := "publisher"
-	zapLogger := logger.With(zap.String("service", serviceName))
+	zapLogger := logger.With(zap.String("service", configs.Publisher.ServiceName))
 	logger := log.NewFactory(zapLogger)
 	// server
 	server := publisher.NewServer(
-		host,
-		tracing.Init(serviceName, metricsFactory, logger),
+		configs.Publisher,
+		metricsFactory,
 		logger,
 	)
-	logError(zapLogger, server.Run())
+	return logError(zapLogger, server.Run())
 }

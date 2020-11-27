@@ -2,33 +2,11 @@ package main
 
 import (
 	"golang-training/tracing/pkg/cmd"
-	"time"
-
-	"github.com/uber/jaeger-lib/metrics"
-	"go.uber.org/zap"
-)
-
-var (
-	metricsBackend string
-	logger         *zap.Logger
-	metricsFactory metrics.Factory
-
-	fixDBConnDelay         time.Duration
-	fixDBConnDisableMutex  bool
-	fixRouteWorkerPoolSize int
-
-	customerPort int
-	driverPort   int
-	frontendPort int
-	routePort    int
-
-	basepath string
-	jaegerUI string
 )
 
 func main() {
 	// cmd.Root(os.Args)
-	cmd.RootWeb()
+	cmd.Execute()
 }
 
 // type Service struct {

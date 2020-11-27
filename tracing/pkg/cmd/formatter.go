@@ -2,25 +2,34 @@ package cmd
 
 import (
 	"golang-training/tracing/pkg/log"
-	"golang-training/tracing/pkg/tracing"
 	"golang-training/tracing/services/formatter"
-	"net"
-	"strconv"
 
+	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
 
-func ServiceFormatter() {
-	host := net.JoinHostPort("0.0.0.0", strconv.Itoa(formatterPort))
+func init() {
+	rootCmd.AddCommand(formatterCmd)
+}
 
+var formatterCmd = &cobra.Command{
+	Use:   "formatter",
+	Short: "Start Formmater Service",
+	Long:  `Start Formmater Service`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return ServiceFormatter()
+	},
+}
+
+func ServiceFormatter() error {
 	// create log factory
-	zapLogger := logger.With(zap.String("service", "formatter"))
+	zapLogger := logger.With(zap.String("service", configs.Formatter.ServiceName))
 	logger := log.NewFactory(zapLogger)
 	// server
 	server := formatter.NewServer(
-		host,
-		tracing.Init("formatter", metricsFactory, logger),
+		configs.Formatter,
+		metricsFactory,
 		logger,
 	)
-	logError(zapLogger, server.Run())
+	return logError(zapLogger, server.Run())
 }

@@ -2,25 +2,34 @@ package formatter
 
 import (
 	"fmt"
+	"golang-training/tracing/pkg/config"
 	"golang-training/tracing/pkg/log"
 	"golang-training/tracing/pkg/tracing"
+	"net"
 	"net/http"
+	"strconv"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/uber/jaeger-lib/metrics"
 	"go.uber.org/zap"
 )
 
 type Server struct {
-	host   string
-	tracer opentracing.Tracer
-	logger log.Factory
+	host           string
+	tracer         opentracing.Tracer
+	metricsFactory metrics.Factory
+	logger         log.Factory
 }
 
-func NewServer(host string, tracer opentracing.Tracer, logger log.Factory) *Server {
+func NewServer(configs *config.Formatter, metricsFactory metrics.Factory, logger log.Factory) *Server {
+	host := net.JoinHostPort("0.0.0.0", strconv.Itoa(configs.Port))
+	// create tracer
+	tracer := tracing.Init(configs.ServiceName, metricsFactory, logger)
 	return &Server{
-		host:   host,
-		tracer: tracer,
-		logger: logger,
+		host:           host,
+		tracer:         tracer,
+		metricsFactory: metricsFactory,
+		logger:         logger,
 	}
 }
 

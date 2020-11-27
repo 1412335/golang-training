@@ -2,42 +2,38 @@ package root
 
 import (
 	"encoding/json"
+	"expvar"
+	"golang-training/tracing/pkg/config"
 	"golang-training/tracing/pkg/log"
 	"golang-training/tracing/pkg/tracing"
+	"net"
 	"net/http"
 	"strconv"
 
-	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/uber/jaeger-lib/metrics"
 	"go.uber.org/zap"
 )
 
 type Server struct {
-	host       string
-	tracer     opentracing.Tracer
-	httpClient *tracing.HTTPClient
-	logger     log.Factory
-	service    *service
+	host           string
+	tracer         opentracing.Tracer
+	metricsFactory metrics.Factory
+	logger         log.Factory
+	service        *service
 }
 
-type Config struct {
-	formatterHost string
-	publisherHost string
-}
-
-func NewServer(host string, tracer opentracing.Tracer, logger log.Factory, formatterHost, publisherHost string) *Server {
+func NewServer(configs *config.ServiceConfig, metricsFactory metrics.Factory, logger log.Factory) *Server {
+	host := net.JoinHostPort("0.0.0.0", strconv.Itoa(configs.Port))
+	// create tracer
+	tracer := tracing.Init(configs.ServiceName, metricsFactory, logger)
 	return &Server{
-		host:   host,
-		tracer: tracer,
-		httpClient: &tracing.HTTPClient{
-			Client: &http.Client{Transport: &nethttp.Transport{}},
-			Tracer: tracer,
-		},
-		service: newService(tracer, logger, Config{
-			formatterHost: formatterHost,
-			publisherHost: publisherHost,
-		}),
-		logger: logger,
+		host:           host,
+		tracer:         tracer,
+		metricsFactory: metricsFactory,
+		logger:         logger,
+		service:        newService(configs, tracer, logger),
 	}
 }
 
@@ -50,6 +46,8 @@ func (s *Server) Run() error {
 func (s *Server) createServerMux() http.Handler {
 	mux := tracing.NewTracerServerMux(s.tracer)
 	mux.Handle("/format", http.HandlerFunc(s.format))
+	mux.Handle("/debug/vars", expvar.Handler()) // expvar
+	mux.Handle("/metrics", promhttp.Handler())  // Prometheus
 	return mux
 }
 

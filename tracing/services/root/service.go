@@ -2,9 +2,12 @@ package root
 
 import (
 	"context"
+	"golang-training/tracing/pkg/config"
 	"golang-training/tracing/pkg/log"
 	"golang-training/tracing/services/formatter"
 	"golang-training/tracing/services/publisher"
+	"net"
+	"strconv"
 
 	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
@@ -17,12 +20,15 @@ type service struct {
 	publisher publisher.Client
 }
 
-func newService(tracer opentracing.Tracer, logger log.Factory, config Config) *service {
+func newService(configs *config.ServiceConfig, tracer opentracing.Tracer, logger log.Factory) *service {
+	// opt services configs
+	formatterHost := net.JoinHostPort(configs.Formatter.Host, strconv.Itoa(configs.Formatter.Port))
+	publisherHost := net.JoinHostPort(configs.Publisher.Host, strconv.Itoa(configs.Publisher.Port))
 	return &service{
 		tracer:    tracer,
 		logger:    logger,
-		formatter: formatter.NewClient(config.formatterHost, tracer, logger),
-		publisher: publisher.NewClient(config.publisherHost, tracer, logger),
+		formatter: formatter.NewClient(formatterHost, tracer, logger),
+		publisher: publisher.NewClient(publisherHost, tracer, logger),
 	}
 }
 

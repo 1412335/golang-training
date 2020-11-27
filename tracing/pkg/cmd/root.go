@@ -1,29 +1,35 @@
 package cmd
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"golang-training/tracing/pkg/log"
-	"golang-training/tracing/pkg/tracing"
-	"golang-training/tracing/services/root"
-	"net"
-	"strconv"
+	"golang-training/tracing/pkg/config"
+	"os"
 
-	"github.com/opentracing/opentracing-go"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/uber/jaeger-lib/metrics"
 	"github.com/uber/jaeger-lib/metrics/expvar"
+	jprom "github.com/uber/jaeger-lib/metrics/prometheus"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 var (
-	rootPort      = 8000
-	formatterPort = 8084
-	publisherPort = 8085
+	// Used for flags.
+	cfgFile        string
+	metricsBackend string
 
+	configs        *config.ServiceConfig
 	logger         *zap.Logger
 	metricsFactory metrics.Factory
+
+	formatterHost string
+	publisherHost string
+
+	rootCmd = &cobra.Command{
+		Use:   "tracing",
+		Short: "Tracing Example With Jaeger",
+		Long:  `Tracing Example With Jaeger`,
+	}
 )
 
 func logError(logger *zap.Logger, err error) error {
@@ -33,71 +39,39 @@ func logError(logger *zap.Logger, err error) error {
 	return err
 }
 
+func initConfig() {
+	configs = &config.ServiceConfig{}
+	if err := config.LoadConfig(cfgFile, configs); err != nil {
+		logger.Fatal("Load config failed", zap.Error(err))
+	}
+	logger.Info("Load config success", zap.String("config_file", viper.ConfigFileUsed()))
+
+	if configs.Metrics == "expvar" {
+		metricsFactory = expvar.NewFactory(10) // 10 buckets for histograms
+		logger.Info("Using expvar as metrics backend")
+	} else {
+		metricsFactory = jprom.New().Namespace(metrics.NSOptions{Name: "tracing", Tags: nil})
+		logger.Info("Using prometheus as metrics backend")
+	}
+}
+
 func init() {
+	cobra.OnInitialize(initConfig)
+
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/config.yml)")
+	rootCmd.PersistentFlags().StringVar(&metricsBackend, "metrics", "prometheus", "metrics backend expvar|prometheus (default: prometheus)")
+
+	viper.BindPFlag("metrics", rootCmd.PersistentFlags().Lookup("metrics"))
+
 	logger, _ = zap.NewDevelopment(
 		zap.AddStacktrace(zapcore.FatalLevel),
 		zap.AddCallerSkip(1),
 	)
-
-	metricsFactory = expvar.NewFactory(10) // 10 buckets for histograms
-	logger.Info("Using expvar as metrics backend")
 }
 
-func Root(args []string) {
-	if len(args) != 3 {
-		logError(logger, errors.New("ERROR: Expecting 2 argument"))
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		logger.Fatal("Execute cmd failed", zap.Error(err))
+		os.Exit(-1)
 	}
-	helloTo := args[1]
-	greeting := args[2]
-
-	// init tracer
-	serviceName := "hello-world"
-	zapLogger := logger.With(zap.String("service", serviceName))
-	slogger := log.NewFactory(zapLogger)
-	tracer := tracing.Init(serviceName, metricsFactory, slogger)
-	// need to set with StartSpanFromContext
-	opentracing.SetGlobalTracer(tracer)
-
-	// start root-span
-	// operation name: say-hello
-	ctx := context.Background()
-	span := tracer.StartSpan("say-hello")
-	// set tag
-	span.SetTag("hello-to", helloTo)
-	defer span.Finish()
-
-	// baggage
-	span.SetBaggageItem("greeting", greeting)
-	fmt.Println(span)
-
-	// attach root-span to context & pass ctx to child services
-	// ctx := context.Background()
-	ctx = opentracing.ContextWithSpan(ctx, span)
-
-	// run
-	// server := root.NewServer(
-	// 	ctx,
-	// 	tracer,
-	// 	slogger,
-	// 	net.JoinHostPort("http://localhost", strconv.Itoa(formatterPort)),
-	// 	net.JoinHostPort("http://localhost", strconv.Itoa(publisherPort)),
-	// )
-	// server.Run(ctx, helloTo)
-}
-
-func RootWeb() {
-	host := net.JoinHostPort("0.0.0.0", strconv.Itoa(rootPort))
-
-	// create log factory
-	zapLogger := logger.With(zap.String("service", "root"))
-	logger := log.NewFactory(zapLogger)
-	// server
-	server := root.NewServer(
-		host,
-		tracing.Init("root", metricsFactory, logger),
-		logger,
-		net.JoinHostPort("localhost", strconv.Itoa(formatterPort)),
-		net.JoinHostPort("localhost", strconv.Itoa(publisherPort)),
-	)
-	logError(zapLogger, server.Run())
 }

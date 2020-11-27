@@ -1,0 +1,11 @@
+serviceName: "root"
+port: 8080
+metrics: "prometheus"
+formatter: 
+  serviceName: "formatter"
+  host: "formatter"
+  port: 8083
+publisher:
+  serviceName: "publisher"
+  host: "publisher"
+  port: 8084
