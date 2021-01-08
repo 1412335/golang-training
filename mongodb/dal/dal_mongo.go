@@ -404,7 +404,6 @@ func (dal *DataAccessLayerMongoDB) AggregateCommon(ctx context.Context, collecti
 			return nil, err
 		}
 	}
-	fmt.Println("pipeline", pipeline)
 	// Perform find operation & validate against the error.
 	cursor, err := collection.Aggregate(ctx, pipeline)
 	if err != nil {

@@ -9,7 +9,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-//CollectionName tên collection
 //Title struct
 type Title struct {
 	Text string `bson:"text" json:"text"`
@@ -82,7 +81,7 @@ func (o *ArticleCategoryCollection) objectConvert(obj interface{}) (*ArticleCate
 	}
 	data := &ArticleCategory{}
 	if err := json.Unmarshal(byteData, data); err != nil {
-		// return nil, err
+		return nil, err
 	}
 	return data, nil
 }
