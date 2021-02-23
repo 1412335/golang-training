@@ -4,7 +4,7 @@ import "context"
 
 type DataAccessLayer interface {
 	GetClient(ctx context.Context) (interface{}, error)
-	Disconnect(ctx context.Context)
+	Disconnect(ctx context.Context) error
 
 	Insert(ctx context.Context, collectionName string, data interface{}) (interface{}, error)
 	InsertMany(ctx context.Context, collectionName string, data []interface{}) ([]interface{}, error)

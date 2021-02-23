@@ -77,8 +77,8 @@ func (dal *DataAccessLayerMongoDB) GetClient(ctx context.Context) (interface{}, 
 	return dal.clientInstance, err
 }
 
-func (dal *DataAccessLayerMongoDB) Disconnect(ctx context.Context) {
-	dal.clientInstance.Disconnect(ctx)
+func (dal *DataAccessLayerMongoDB) Disconnect(ctx context.Context) error {
+	return dal.clientInstance.Disconnect(ctx)
 }
 
 func (dal *DataAccessLayerMongoDB) GetDatabase() error {
