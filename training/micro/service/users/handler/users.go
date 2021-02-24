@@ -115,7 +115,7 @@ func (h *Users) Create(ctx context.Context, req *users.CreateRequest, rsp *users
 		if err := tx.Create(user).Error; err != nil && strings.Contains(err.Error(), "idx_users_email") {
 			return ErrDuplicateEmail
 		} else if err != nil {
-			logger.Errorf("create user: %v", err)
+			logger.Errorf("Error connecting from db: %v", err)
 			return ErrConnectDB
 		}
 
@@ -140,7 +140,7 @@ func (h *Users) Login(ctx context.Context, req *users.LoginRequest, rsp *users.L
 		if err := tx.Where(&User{Email: strings.ToLower(req.Email)}).First(&user).Error; err == gorm.ErrRecordNotFound {
 			return ErrNotFound
 		} else if err != nil {
-			logger.Errorf("Error reading from db: %v", err)
+			logger.Errorf("Error connecting from db: %v", err)
 			return ErrConnectDB
 		}
 
@@ -158,7 +158,7 @@ func (h *Users) Login(ctx context.Context, req *users.LoginRequest, rsp *users.L
 func (h *Users) List(ctx context.Context, req *users.ListRequest, rsp *users.ListResponse) error {
 	var us []User
 	if err := h.DB.Order("created_at desc").Find(&us).Error; err != nil {
-		logger.Errorf("Error reading from db: %v", err)
+		logger.Errorf("Error connecting from db: %v", err)
 		return ErrConnectDB
 	}
 
@@ -178,7 +178,7 @@ func (h *Users) Read(ctx context.Context, req *users.ReadRequest, rsp *users.Rea
 	// db.Find(&users, []int{1,2,3})
 	// db.Where([]int64{20, 21, 22}).Find(&users)
 	if err := h.DB.Where("id IN ?", req.Ids).Find(&us).Error; err != nil {
-		logger.Errorf("Error reading from db: %v", err)
+		logger.Errorf("Error connecting from db: %v", err)
 		return ErrConnectDB
 	}
 
@@ -204,7 +204,7 @@ func (h *Users) ReadByEmail(ctx context.Context, req *users.ReadByEmailRequest, 
 	// db.Find(&users, []int{1,2,3})
 	// db.Where([]int64{20, 21, 22}).Find(&users)
 	if err := h.DB.Where("lower(email) IN ?", emails).Find(&us).Error; err != nil {
-		logger.Errorf("Error reading from db: %v", err)
+		logger.Errorf("Error connecting from db: %v", err)
 		return ErrConnectDB
 	}
 
@@ -214,4 +214,18 @@ func (h *Users) ReadByEmail(ctx context.Context, req *users.ReadByEmailRequest, 
 		rsp.Users[user.Email] = user.sanitize()
 	}
 	return nil
+}
+
+func (h *Users) Delete(ctx context.Context, req *users.DeleteRequest, rsp *users.DeleteResponse) error {
+	if len(req.Ids) == 0 {
+		return ErrMissingIds
+	}
+
+	return h.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where(req.Ids).Delete(&User{}).Error; err != nil {
+			logger.Errorf("Error connecting from db: %v", err)
+			return ErrConnectDB
+		}
+		return nil
+	})
 }

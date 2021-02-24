@@ -7,6 +7,7 @@ option go_package = "proto;users";
 service Users {
 	rpc Create(CreateRequest) returns (CreateResponse) {}
 	rpc Login(LoginRequest) returns (LoginResponse) {}
+	rpc Delete(DeleteRequest) returns (DeleteResponse) {}
 	
 	rpc List(ListRequest) returns (ListResponse) {}
 	rpc Read(ReadRequest) returns (ReadResponse) {}
@@ -30,6 +31,13 @@ message CreateRequest {
 message CreateResponse {
 	User user = 1;
 	string token = 2;
+}
+
+message DeleteRequest {
+	repeated string ids = 1;
+}
+
+message DeleteResponse {
 }
 
 message LoginRequest {
