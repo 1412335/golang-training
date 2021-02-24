@@ -4,10 +4,13 @@ package users;
 
 option go_package = "proto;users";
 
+import "google/protobuf/wrappers.proto";
+
 service Users {
 	rpc Create(CreateRequest) returns (CreateResponse) {}
 	rpc Login(LoginRequest) returns (LoginResponse) {}
 	rpc Delete(DeleteRequest) returns (DeleteResponse) {}
+	rpc Update(UpdateRequest) returns (UpdateResponse) {}
 	
 	rpc List(ListRequest) returns (ListResponse) {}
 	rpc Read(ReadRequest) returns (ReadResponse) {}
@@ -31,6 +34,18 @@ message CreateRequest {
 message CreateResponse {
 	User user = 1;
 	string token = 2;
+}
+
+message UpdateRequest {
+	string id = 1;
+	google.protobuf.StringValue first_name = 2;
+	google.protobuf.StringValue last_name = 3;
+	google.protobuf.StringValue email = 4;
+	google.protobuf.StringValue password = 5;
+}
+
+message UpdateResponse {
+	User user = 1;
 }
 
 message DeleteRequest {

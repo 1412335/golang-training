@@ -25,7 +25,7 @@ var (
 	ErrInvalidEmail      = errors.BadRequest("INVALID_EMAIL", "The email provided is invalid")
 	ErrInvalidPassword   = errors.BadRequest("INVALID_PASSWORD", "Password must be at least 8 characters long")
 	ErrIncorrectPassword = errors.Unauthorized("INCORRECT_PASSWORD", "Password wrong")
-	ErrMissingIds        = errors.BadRequest("MISSING_IDS", "Missing ids")
+	ErrMissingId         = errors.BadRequest("MISSING_ID", "Missing id")
 
 	ErrConnectDB = errors.InternalServerError("CONNECT_DB", "Connecting to database failed")
 	ErrNotFound  = errors.NotFound("NOT_FOUND", "User not found")
@@ -125,6 +125,62 @@ func (h *Users) Create(ctx context.Context, req *users.CreateRequest, rsp *users
 	})
 }
 
+func (h *Users) Update(ctx context.Context, req *users.UpdateRequest, rsp *users.UpdateResponse) error {
+	if len(req.Id) == 0 {
+		return ErrMissingId
+	}
+	if req.FirstName != nil && len(req.FirstName.Value) == 0 {
+		return ErrMissingFirstName
+	}
+	if req.LastName != nil && len(req.LastName.Value) == 0 {
+		return ErrMissingLastName
+	}
+	if req.Email != nil && isValidEmail(req.Email.Value) == false {
+		return ErrInvalidEmail
+	}
+	if req.Password != nil && isValidPassword(req.Password.Value) == false {
+		return ErrInvalidPassword
+	}
+
+	// lookup user
+	var user User
+	if err := h.DB.Where(&User{ID: req.Id}).First(&user).Error; err == gorm.ErrRecordNotFound {
+		return ErrNotFound
+	} else if err != nil {
+		logger.Errorf("Error connecting from db: %v", err)
+		return ErrConnectDB
+	}
+
+	if req.FirstName != nil {
+		user.FirstName = req.FirstName.Value
+	}
+	if req.LastName != nil {
+		user.LastName = req.LastName.Value
+	}
+	if req.Email != nil {
+		user.Email = strings.ToLower(req.Email.Value)
+	}
+	if req.Password != nil {
+		// hash password
+		pwdHashed, err := genHash(req.Password.Value)
+		if err != nil {
+			logger.Errorf("Hash password: %v", err)
+			return errors.InternalServerError("HASH_PWD_FAILED", "Hash password failed")
+		}
+		user.Password = pwdHashed
+	}
+
+	if err := h.DB.Save(user).Error; err != nil && strings.Contains(err.Error(), "idx_users_email") {
+		return ErrDuplicateEmail
+	} else if err != nil {
+		logger.Errorf("Error connecting from db: %v", err)
+		return ErrConnectDB
+	}
+
+	rsp.User = user.sanitize()
+	return nil
+}
+
 func (h *Users) Login(ctx context.Context, req *users.LoginRequest, rsp *users.LoginResponse) error {
 	// validate request
 	if len(req.Email) == 0 {
@@ -171,7 +227,7 @@ func (h *Users) List(ctx context.Context, req *users.ListRequest, rsp *users.Lis
 
 func (h *Users) Read(ctx context.Context, req *users.ReadRequest, rsp *users.ReadResponse) error {
 	if len(req.Ids) == 0 {
-		return ErrMissingIds
+		return ErrMissingId
 	}
 
 	var us []User
@@ -218,7 +274,7 @@ func (h *Users) ReadByEmail(ctx context.Context, req *users.ReadByEmailRequest, 
 
 func (h *Users) Delete(ctx context.Context, req *users.DeleteRequest, rsp *users.DeleteResponse) error {
 	if len(req.Ids) == 0 {
-		return ErrMissingIds
+		return ErrMissingId
 	}
 
 	return h.DB.Transaction(func(tx *gorm.DB) error {

@@ -6,6 +6,7 @@ package users
 import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	_ "github.com/golang/protobuf/ptypes/wrappers"
 	math "math"
 )
 
@@ -45,6 +46,7 @@ type UsersService interface {
 	Create(ctx context.Context, in *CreateRequest, opts ...client.CallOption) (*CreateResponse, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*LoginResponse, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...client.CallOption) (*DeleteResponse, error)
+	Update(ctx context.Context, in *UpdateRequest, opts ...client.CallOption) (*UpdateResponse, error)
 	List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error)
 	Read(ctx context.Context, in *ReadRequest, opts ...client.CallOption) (*ReadResponse, error)
 	ReadByEmail(ctx context.Context, in *ReadByEmailRequest, opts ...client.CallOption) (*ReadByEmailResponse, error)
@@ -92,6 +94,16 @@ func (c *usersService) Delete(ctx context.Context, in *DeleteRequest, opts ...cl
 	return out, nil
 }
 
+func (c *usersService) Update(ctx context.Context, in *UpdateRequest, opts ...client.CallOption) (*UpdateResponse, error) {
+	req := c.c.NewRequest(c.name, "Users.Update", in)
+	out := new(UpdateResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *usersService) List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error) {
 	req := c.c.NewRequest(c.name, "Users.List", in)
 	out := new(ListResponse)
@@ -128,6 +140,7 @@ type UsersHandler interface {
 	Create(context.Context, *CreateRequest, *CreateResponse) error
 	Login(context.Context, *LoginRequest, *LoginResponse) error
 	Delete(context.Context, *DeleteRequest, *DeleteResponse) error
+	Update(context.Context, *UpdateRequest, *UpdateResponse) error
 	List(context.Context, *ListRequest, *ListResponse) error
 	Read(context.Context, *ReadRequest, *ReadResponse) error
 	ReadByEmail(context.Context, *ReadByEmailRequest, *ReadByEmailResponse) error
@@ -138,6 +151,7 @@ func RegisterUsersHandler(s server.Server, hdlr UsersHandler, opts ...server.Han
 		Create(ctx context.Context, in *CreateRequest, out *CreateResponse) error
 		Login(ctx context.Context, in *LoginRequest, out *LoginResponse) error
 		Delete(ctx context.Context, in *DeleteRequest, out *DeleteResponse) error
+		Update(ctx context.Context, in *UpdateRequest, out *UpdateResponse) error
 		List(ctx context.Context, in *ListRequest, out *ListResponse) error
 		Read(ctx context.Context, in *ReadRequest, out *ReadResponse) error
 		ReadByEmail(ctx context.Context, in *ReadByEmailRequest, out *ReadByEmailResponse) error
@@ -163,6 +177,10 @@ func (h *usersHandler) Login(ctx context.Context, in *LoginRequest, out *LoginRe
 
 func (h *usersHandler) Delete(ctx context.Context, in *DeleteRequest, out *DeleteResponse) error {
 	return h.UsersHandler.Delete(ctx, in, out)
+}
+
+func (h *usersHandler) Update(ctx context.Context, in *UpdateRequest, out *UpdateResponse) error {
+	return h.UsersHandler.Update(ctx, in, out)
 }
 
 func (h *usersHandler) List(ctx context.Context, in *ListRequest, out *ListResponse) error {

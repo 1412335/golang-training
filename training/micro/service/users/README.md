@@ -24,6 +24,8 @@ micro run .
 # test
 micro call users Users.Create '{"first_name":"f","last_name":"l","email":"a@gmali.com","password":"pwdwwwwwwwwww"}'
 micro call users Users.Create '{"first_name":"f","last_name":"l","email":"b@gmali.com","password":"pwdwwwwwwwwww"}'
+micro call users Users.Update '{"id":"401b774a-ed8b-459d-92fa-f6dc81c8a73c","email":"bc@gmali.com"}'
+
 micro call users Users.Login '{"email":"a@gmali.com","password":"pwdwwwwwwwwww"}'
 
 micro users list
