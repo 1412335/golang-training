@@ -31,7 +31,7 @@ func main() {
 	if err != nil {
 		logger.Fatalf("Error connect database: %v", err)
 	}
-	if err := db.AutoMigrate(&handler.User{}); err != nil {
+	if err := db.AutoMigrate(&handler.User{}, &handler.Token{}); err != nil {
 		logger.Fatalf("Error migrate database: %v", err)
 	}
 

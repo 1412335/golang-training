@@ -31,6 +31,7 @@ var (
 	ErrNotFound  = errors.NotFound("NOT_FOUND", "User not found")
 
 	emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+	ttlToken   = 24 * time.Hour
 )
 
 func isValidEmail(email string) bool {
@@ -66,6 +67,7 @@ type User struct {
 	Email     string `gorm:"uniqueIndex"`
 	Password  string
 	CreatedAt time.Time
+	Tokens    []Token
 }
 
 func (u *User) sanitize() *users.User {
@@ -75,6 +77,15 @@ func (u *User) sanitize() *users.User {
 		LastName:  u.LastName,
 		Email:     u.Email,
 	}
+}
+
+type Token struct {
+	Key       string `gorm:"primaryKey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	ExpiresAt time.Time
+	UserID    string // foreign key
+	// User      User
 }
 
 type Users struct {
@@ -119,7 +130,19 @@ func (h *Users) Create(ctx context.Context, req *users.CreateRequest, rsp *users
 			return ErrConnectDB
 		}
 
+		// token
+		token := &Token{
+			Key:       uuid.New().String(),
+			UserID:    user.ID,
+			ExpiresAt: time.Now().Add(ttlToken),
+		}
+		if err := tx.Create(token).Error; err != nil {
+			logger.Errorf("Error connecting from db: %v", err)
+			return ErrConnectDB
+		}
+
 		rsp.User = user.sanitize()
+		rsp.Token = token.Key
 
 		return nil
 	})
@@ -205,7 +228,19 @@ func (h *Users) Login(ctx context.Context, req *users.LoginRequest, rsp *users.L
 			return ErrIncorrectPassword
 		}
 
+		// generate token
+		token := &Token{
+			Key:       uuid.New().String(),
+			UserID:    user.ID,
+			ExpiresAt: time.Now().Add(ttlToken),
+		}
+		if err := tx.Create(token).Error; err != nil {
+			logger.Errorf("Error connecting from db: %v", err)
+			return ErrConnectDB
+		}
+
 		rsp.User = user.sanitize()
+		rsp.Token = token.Key
 
 		return nil
 	})
