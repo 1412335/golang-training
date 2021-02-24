@@ -44,12 +44,13 @@ func NewUsersEndpoints() []*api.Endpoint {
 
 type UsersService interface {
 	Create(ctx context.Context, in *CreateRequest, opts ...client.CallOption) (*CreateResponse, error)
-	Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*LoginResponse, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...client.CallOption) (*DeleteResponse, error)
 	Update(ctx context.Context, in *UpdateRequest, opts ...client.CallOption) (*UpdateResponse, error)
 	List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error)
 	Read(ctx context.Context, in *ReadRequest, opts ...client.CallOption) (*ReadResponse, error)
 	ReadByEmail(ctx context.Context, in *ReadByEmailRequest, opts ...client.CallOption) (*ReadByEmailResponse, error)
+	Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*LoginResponse, error)
+	Logout(ctx context.Context, in *LogoutRequest, opts ...client.CallOption) (*LogoutResponse, error)
 }
 
 type usersService struct {
@@ -67,16 +68,6 @@ func NewUsersService(name string, c client.Client) UsersService {
 func (c *usersService) Create(ctx context.Context, in *CreateRequest, opts ...client.CallOption) (*CreateResponse, error) {
 	req := c.c.NewRequest(c.name, "Users.Create", in)
 	out := new(CreateResponse)
-	err := c.c.Call(ctx, req, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *usersService) Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*LoginResponse, error) {
-	req := c.c.NewRequest(c.name, "Users.Login", in)
-	out := new(LoginResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -134,27 +125,49 @@ func (c *usersService) ReadByEmail(ctx context.Context, in *ReadByEmailRequest, 
 	return out, nil
 }
 
+func (c *usersService) Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*LoginResponse, error) {
+	req := c.c.NewRequest(c.name, "Users.Login", in)
+	out := new(LoginResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *usersService) Logout(ctx context.Context, in *LogoutRequest, opts ...client.CallOption) (*LogoutResponse, error) {
+	req := c.c.NewRequest(c.name, "Users.Logout", in)
+	out := new(LogoutResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Users service
 
 type UsersHandler interface {
 	Create(context.Context, *CreateRequest, *CreateResponse) error
-	Login(context.Context, *LoginRequest, *LoginResponse) error
 	Delete(context.Context, *DeleteRequest, *DeleteResponse) error
 	Update(context.Context, *UpdateRequest, *UpdateResponse) error
 	List(context.Context, *ListRequest, *ListResponse) error
 	Read(context.Context, *ReadRequest, *ReadResponse) error
 	ReadByEmail(context.Context, *ReadByEmailRequest, *ReadByEmailResponse) error
+	Login(context.Context, *LoginRequest, *LoginResponse) error
+	Logout(context.Context, *LogoutRequest, *LogoutResponse) error
 }
 
 func RegisterUsersHandler(s server.Server, hdlr UsersHandler, opts ...server.HandlerOption) error {
 	type users interface {
 		Create(ctx context.Context, in *CreateRequest, out *CreateResponse) error
-		Login(ctx context.Context, in *LoginRequest, out *LoginResponse) error
 		Delete(ctx context.Context, in *DeleteRequest, out *DeleteResponse) error
 		Update(ctx context.Context, in *UpdateRequest, out *UpdateResponse) error
 		List(ctx context.Context, in *ListRequest, out *ListResponse) error
 		Read(ctx context.Context, in *ReadRequest, out *ReadResponse) error
 		ReadByEmail(ctx context.Context, in *ReadByEmailRequest, out *ReadByEmailResponse) error
+		Login(ctx context.Context, in *LoginRequest, out *LoginResponse) error
+		Logout(ctx context.Context, in *LogoutRequest, out *LogoutResponse) error
 	}
 	type Users struct {
 		users
@@ -169,10 +182,6 @@ type usersHandler struct {
 
 func (h *usersHandler) Create(ctx context.Context, in *CreateRequest, out *CreateResponse) error {
 	return h.UsersHandler.Create(ctx, in, out)
-}
-
-func (h *usersHandler) Login(ctx context.Context, in *LoginRequest, out *LoginResponse) error {
-	return h.UsersHandler.Login(ctx, in, out)
 }
 
 func (h *usersHandler) Delete(ctx context.Context, in *DeleteRequest, out *DeleteResponse) error {
@@ -193,4 +202,12 @@ func (h *usersHandler) Read(ctx context.Context, in *ReadRequest, out *ReadRespo
 
 func (h *usersHandler) ReadByEmail(ctx context.Context, in *ReadByEmailRequest, out *ReadByEmailResponse) error {
 	return h.UsersHandler.ReadByEmail(ctx, in, out)
+}
+
+func (h *usersHandler) Login(ctx context.Context, in *LoginRequest, out *LoginResponse) error {
+	return h.UsersHandler.Login(ctx, in, out)
+}
+
+func (h *usersHandler) Logout(ctx context.Context, in *LogoutRequest, out *LogoutResponse) error {
+	return h.UsersHandler.Logout(ctx, in, out)
 }

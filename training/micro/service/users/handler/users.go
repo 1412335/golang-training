@@ -246,6 +246,32 @@ func (h *Users) Login(ctx context.Context, req *users.LoginRequest, rsp *users.L
 	})
 }
 
+func (h *Users) Logout(ctx context.Context, req *users.LogoutRequest, rsp *users.LogoutResponse) error {
+	if len(req.Id) == 0 {
+		return ErrMissingId
+	}
+	return h.DB.Transaction(func(tx *gorm.DB) error {
+		// lookup user
+		var user User
+		if err := tx.Where(&User{ID: req.Id}).Preload("Tokens").First(&user).Error; err == gorm.ErrRecordNotFound {
+			return ErrNotFound
+		} else if err != nil {
+			logger.Errorf("Error connecting from db: %v", err)
+			return ErrConnectDB
+		}
+
+		// delete tokens
+		if len(user.Tokens) > 0 {
+			if err := tx.Delete(user.Tokens).Error; err != nil {
+				logger.Errorf("Error connecting from db: %v", err)
+				return ErrConnectDB
+			}
+		}
+
+		return nil
+	})
+}
+
 func (h *Users) List(ctx context.Context, req *users.ListRequest, rsp *users.ListResponse) error {
 	var us []User
 	if err := h.DB.Order("created_at desc").Find(&us).Error; err != nil {

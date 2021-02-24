@@ -8,13 +8,15 @@ import "google/protobuf/wrappers.proto";
 
 service Users {
 	rpc Create(CreateRequest) returns (CreateResponse) {}
-	rpc Login(LoginRequest) returns (LoginResponse) {}
 	rpc Delete(DeleteRequest) returns (DeleteResponse) {}
-	rpc Update(UpdateRequest) returns (UpdateResponse) {}
-	
+	rpc Update(UpdateRequest) returns (UpdateResponse) {}	
 	rpc List(ListRequest) returns (ListResponse) {}
 	rpc Read(ReadRequest) returns (ReadResponse) {}
 	rpc ReadByEmail(ReadByEmailRequest) returns (ReadByEmailResponse) {}
+
+	rpc Login(LoginRequest) returns (LoginResponse) {}
+	rpc Logout(LogoutRequest) returns (LogoutResponse) {}
+	rpc Validate(ValidateRequest) returns (ValidateResponse) {}
 }
 
 message User {
@@ -55,16 +57,6 @@ message DeleteRequest {
 message DeleteResponse {
 }
 
-message LoginRequest {
-	string email = 1;
-	string password = 2;
-}
-
-message LoginResponse {
-	User user = 1;
-	string token = 2;
-}
-
 message ListRequest {}
 
 message ListResponse {
@@ -85,4 +77,29 @@ message ReadByEmailRequest {
 
 message ReadByEmailResponse {
 	map<string,User> users = 1;
+}
+
+message LoginRequest {
+	string email = 1;
+	string password = 2;
+}
+
+message LoginResponse {
+	User user = 1;
+	string token = 2;
+}
+
+message LogoutRequest {
+	string id = 1;
+}
+
+message LogoutResponse {
+}
+
+message ValidateRequest {
+	string token = 1;
+}
+
+message ValidateResponse {
+	User user = 1;
 }
