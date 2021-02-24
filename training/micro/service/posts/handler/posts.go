@@ -12,10 +12,12 @@ import (
 	"github.com/gosimple/slug"
 
 	posts "posts/proto"
+	// tags "tags/proto"
 )
 
 type Posts struct {
 	db model.Model
+	// Tags tags.TagsService
 }
 
 func NewPosts() *Posts {
@@ -31,6 +33,7 @@ func NewPosts() *Posts {
 
 	return &Posts{
 		db: db,
+		// Tags: tagsService,
 	}
 }
 
