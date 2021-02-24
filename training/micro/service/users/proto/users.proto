@@ -6,6 +6,11 @@ option go_package = "proto;users";
 
 service Users {
 	rpc Create(CreateRequest) returns (CreateResponse) {}
+	rpc Login(LoginRequest) returns (LoginResponse) {}
+	
+	rpc List(ListRequest) returns (ListResponse) {}
+	rpc Read(ReadRequest) returns (ReadResponse) {}
+	rpc ReadByEmail(ReadByEmailRequest) returns (ReadByEmailResponse) {}
 }
 
 message User {
@@ -25,4 +30,36 @@ message CreateRequest {
 message CreateResponse {
 	User user = 1;
 	string token = 2;
+}
+
+message LoginRequest {
+	string email = 1;
+	string password = 2;
+}
+
+message LoginResponse {
+	User user = 1;
+	string token = 2;
+}
+
+message ListRequest {}
+
+message ListResponse {
+	repeated User users = 1;
+}
+
+message ReadRequest {
+	repeated string ids = 1;
+}
+
+message ReadResponse {
+	map<string,User> users = 1;
+}
+
+message ReadByEmailRequest {
+	repeated string emails = 1;
+}
+
+message ReadByEmailResponse {
+	map<string,User> users = 1;
 }
