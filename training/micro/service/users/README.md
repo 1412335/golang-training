@@ -34,4 +34,5 @@ micro users readByEmail --emails="b@gmali.com" --emails="a@gmali.com"
 micro call users Users.ReadByEmail '{"emails":["a@gmali.com","b@gmali.com","a"]}'
 
 micro users logout --id="0ca1badd-461a-40cb-8c92-2827b9349816"      
+micro users validate --token="0ca1badd-461a-40cb-8c92-2827b9349816"      
 ```

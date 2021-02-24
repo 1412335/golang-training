@@ -51,6 +51,7 @@ type UsersService interface {
 	ReadByEmail(ctx context.Context, in *ReadByEmailRequest, opts ...client.CallOption) (*ReadByEmailResponse, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*LoginResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...client.CallOption) (*LogoutResponse, error)
+	Validate(ctx context.Context, in *ValidateRequest, opts ...client.CallOption) (*ValidateResponse, error)
 }
 
 type usersService struct {
@@ -145,6 +146,16 @@ func (c *usersService) Logout(ctx context.Context, in *LogoutRequest, opts ...cl
 	return out, nil
 }
 
+func (c *usersService) Validate(ctx context.Context, in *ValidateRequest, opts ...client.CallOption) (*ValidateResponse, error) {
+	req := c.c.NewRequest(c.name, "Users.Validate", in)
+	out := new(ValidateResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Users service
 
 type UsersHandler interface {
@@ -156,6 +167,7 @@ type UsersHandler interface {
 	ReadByEmail(context.Context, *ReadByEmailRequest, *ReadByEmailResponse) error
 	Login(context.Context, *LoginRequest, *LoginResponse) error
 	Logout(context.Context, *LogoutRequest, *LogoutResponse) error
+	Validate(context.Context, *ValidateRequest, *ValidateResponse) error
 }
 
 func RegisterUsersHandler(s server.Server, hdlr UsersHandler, opts ...server.HandlerOption) error {
@@ -168,6 +180,7 @@ func RegisterUsersHandler(s server.Server, hdlr UsersHandler, opts ...server.Han
 		ReadByEmail(ctx context.Context, in *ReadByEmailRequest, out *ReadByEmailResponse) error
 		Login(ctx context.Context, in *LoginRequest, out *LoginResponse) error
 		Logout(ctx context.Context, in *LogoutRequest, out *LogoutResponse) error
+		Validate(ctx context.Context, in *ValidateRequest, out *ValidateResponse) error
 	}
 	type Users struct {
 		users
@@ -210,4 +223,8 @@ func (h *usersHandler) Login(ctx context.Context, in *LoginRequest, out *LoginRe
 
 func (h *usersHandler) Logout(ctx context.Context, in *LogoutRequest, out *LogoutResponse) error {
 	return h.UsersHandler.Logout(ctx, in, out)
+}
+
+func (h *usersHandler) Validate(ctx context.Context, in *ValidateRequest, out *ValidateResponse) error {
+	return h.UsersHandler.Validate(ctx, in, out)
 }

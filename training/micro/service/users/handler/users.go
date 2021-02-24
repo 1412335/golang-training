@@ -26,9 +26,13 @@ var (
 	ErrInvalidPassword   = errors.BadRequest("INVALID_PASSWORD", "Password must be at least 8 characters long")
 	ErrIncorrectPassword = errors.Unauthorized("INCORRECT_PASSWORD", "Password wrong")
 	ErrMissingId         = errors.BadRequest("MISSING_ID", "Missing id")
+	ErrMissingToken      = errors.BadRequest("MISSING_TOKEN", "Missing token")
 
 	ErrConnectDB = errors.InternalServerError("CONNECT_DB", "Connecting to database failed")
 	ErrNotFound  = errors.NotFound("NOT_FOUND", "User not found")
+
+	ErrTokenNotFound = errors.BadRequest("TOKEN_NOT_FOUND", "Token not found")
+	ErrTokenExpired  = errors.Unauthorized("TOKEN_EXPIRE", "Token expired")
 
 	emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 	ttlToken   = 24 * time.Hour
@@ -85,7 +89,7 @@ type Token struct {
 	UpdatedAt time.Time
 	ExpiresAt time.Time
 	UserID    string // foreign key
-	// User      User
+	User      User
 }
 
 type Users struct {
@@ -268,6 +272,37 @@ func (h *Users) Logout(ctx context.Context, req *users.LogoutRequest, rsp *users
 			}
 		}
 
+		return nil
+	})
+}
+
+func (h *Users) Validate(ctx context.Context, req *users.ValidateRequest, rsp *users.ValidateResponse) error {
+	if len(req.Token) == 0 {
+		return ErrMissingToken
+	}
+	return h.DB.Transaction(func(tx *gorm.DB) error {
+		// lookup token
+		var token Token
+		if err := tx.Where(&Token{Key: req.Token}).Preload("User").First(&token).Error; err == gorm.ErrRecordNotFound {
+			return ErrTokenNotFound
+		} else if err != nil {
+			logger.Errorf("Error connecting from db: %v", err)
+			return ErrConnectDB
+		}
+
+		// check expiresAt
+		if time.Now().After(token.ExpiresAt) {
+			return ErrTokenExpired
+		}
+
+		// increase expiresAt
+		token.ExpiresAt = time.Now().Add(ttlToken)
+		if err := tx.Save(&token).Error; err != nil {
+			logger.Errorf("Error connecting from db: %v", err)
+			return ErrConnectDB
+		}
+
+		rsp.User = token.User.sanitize()
 		return nil
 	})
 }
