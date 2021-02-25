@@ -46,10 +46,7 @@ func isValidEmail(email string) bool {
 }
 
 func isValidPassword(password string) bool {
-	if len(password) < 8 {
-		return false
-	}
-	return true
+	return len(password) >= 8
 }
 
 func genHash(password string) (string, error) {
@@ -104,10 +101,10 @@ func (h *Users) Create(ctx context.Context, req *users.CreateRequest, rsp *users
 	if len(req.LastName) == 0 {
 		return ErrMissingLastName
 	}
-	if isValidEmail(req.Email) == false {
+	if !isValidEmail(req.Email) {
 		return ErrInvalidEmail
 	}
-	if isValidPassword(req.Password) == false {
+	if !isValidPassword(req.Password) {
 		return ErrInvalidPassword
 	}
 
@@ -162,10 +159,10 @@ func (h *Users) Update(ctx context.Context, req *users.UpdateRequest, rsp *users
 	if req.LastName != nil && len(req.LastName.Value) == 0 {
 		return ErrMissingLastName
 	}
-	if req.Email != nil && isValidEmail(req.Email.Value) == false {
+	if req.Email != nil && !isValidEmail(req.Email.Value) {
 		return ErrInvalidEmail
 	}
-	if req.Password != nil && isValidPassword(req.Password.Value) == false {
+	if req.Password != nil && !isValidPassword(req.Password.Value) {
 		return ErrInvalidPassword
 	}
 

@@ -13,6 +13,16 @@ proto:
 build:
 	go build -o users *.go
 
+# gofmt
+.PHONY: fmt
+fmt:
+	go fmt ./...
+
+# go-lint
+.PHONY: lint
+lint: fmt
+	golangci-lint run ./...
+
 .PHONY: test
 test:
 	go test -v ./... -cover

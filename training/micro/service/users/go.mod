@@ -3,9 +3,13 @@ module users
 go 1.15
 
 require (
+	github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee // indirect
+	github.com/gobwas/pool v0.2.1 // indirect
+	github.com/gobwas/ws v1.0.3 // indirect
 	github.com/golang/protobuf v1.4.3
 	github.com/google/uuid v1.1.2
-	github.com/micro/micro/v3 v3.0.0
+	github.com/micro/micro/v3 v3.1.0
+	github.com/soheilhy/cmux v0.1.4 // indirect
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	google.golang.org/protobuf v1.25.0
 	gorm.io/driver/postgres v1.0.8

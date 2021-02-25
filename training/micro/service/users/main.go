@@ -36,9 +36,11 @@ func main() {
 	}
 
 	// Register handler
-	pb.RegisterUsersHandler(srv.Server(), &handler.Users{
+	if err := pb.RegisterUsersHandler(srv.Server(), &handler.Users{
 		DB: db,
-	})
+	}); err != nil {
+		logger.Fatalf("Error registering handler: %v", err)
+	}
 
 	// Run service
 	if err := srv.Run(); err != nil {
