@@ -5,6 +5,7 @@ import (
 	"context"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -272,11 +273,29 @@ func TestChats_ListMessage(t *testing.T) {
 		chatId string
 		after  *timestamppb.Timestamp
 		limit  *wrapperspb.Int32Value
+		count  int
 		err    error
 	}{
 		{
 			name:   "Valid",
 			chatId: rsp.Chat.Id,
+		},
+		{
+			name:   "ValidWithLimit",
+			chatId: rsp.Chat.Id,
+			limit:  wrapperspb.Int32(1),
+		},
+		{
+			name:   "ValidWithAfterNextOneDay",
+			chatId: rsp.Chat.Id,
+			after:  timestamppb.New(time.Now().Add(24 * time.Hour)),
+			count:  0,
+		},
+		{
+			name:   "ValidWithAfterTwoDayBefore",
+			chatId: rsp.Chat.Id,
+			after:  timestamppb.New(time.Now().Add(-2 * 24 * time.Hour)),
+			count:  2,
 		},
 	}
 	for _, tt := range tests2 {
@@ -294,6 +313,12 @@ func TestChats_ListMessage(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, rsp.Messages)
+				if tt.limit != nil {
+					require.Len(t, rsp.Messages, int(tt.limit.Value))
+				}
+				if tt.after != nil {
+					require.Len(t, rsp.Messages, int(tt.count))
+				}
 				for _, msg := range rsp.Messages {
 					require.NotNil(t, msg)
 					switch msg.Id {
