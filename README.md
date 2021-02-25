@@ -19,5 +19,8 @@ export GOPATH=/home/namnnp/go1.15
 source ~/.zshrc 
 ```
 
+# Install Protoc
+- http://google.github.io/proto-lens/installing-protoc.html
+
 # Docs
 - https://github.com/softrams/k6-docker
