@@ -32,7 +32,10 @@ func main() {
 	if err != nil {
 		logger.Fatalf("Could not connect to database: %v", err)
 	}
-	if err := db.AutoMigrate(&handler.Chat{}); err != nil {
+	if err := db.AutoMigrate(
+		&handler.Chat{},
+		&handler.Message{},
+	); err != nil {
 		logger.Fatalf("Auto migrate failed: %v", err)
 	}
 

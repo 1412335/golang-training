@@ -44,6 +44,7 @@ func NewChatsEndpoints() []*api.Endpoint {
 
 type ChatsService interface {
 	CreateChat(ctx context.Context, in *CreateChatRequest, opts ...client.CallOption) (*CreateChatResponse, error)
+	CreateMessage(ctx context.Context, in *CreateMessageRequest, opts ...client.CallOption) (*CreateMessageResponse, error)
 }
 
 type chatsService struct {
@@ -68,15 +69,27 @@ func (c *chatsService) CreateChat(ctx context.Context, in *CreateChatRequest, op
 	return out, nil
 }
 
+func (c *chatsService) CreateMessage(ctx context.Context, in *CreateMessageRequest, opts ...client.CallOption) (*CreateMessageResponse, error) {
+	req := c.c.NewRequest(c.name, "Chats.CreateMessage", in)
+	out := new(CreateMessageResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Chats service
 
 type ChatsHandler interface {
 	CreateChat(context.Context, *CreateChatRequest, *CreateChatResponse) error
+	CreateMessage(context.Context, *CreateMessageRequest, *CreateMessageResponse) error
 }
 
 func RegisterChatsHandler(s server.Server, hdlr ChatsHandler, opts ...server.HandlerOption) error {
 	type chats interface {
 		CreateChat(ctx context.Context, in *CreateChatRequest, out *CreateChatResponse) error
+		CreateMessage(ctx context.Context, in *CreateMessageRequest, out *CreateMessageResponse) error
 	}
 	type Chats struct {
 		chats
@@ -91,4 +104,8 @@ type chatsHandler struct {
 
 func (h *chatsHandler) CreateChat(ctx context.Context, in *CreateChatRequest, out *CreateChatResponse) error {
 	return h.ChatsHandler.CreateChat(ctx, in, out)
+}
+
+func (h *chatsHandler) CreateMessage(ctx context.Context, in *CreateMessageRequest, out *CreateMessageResponse) error {
+	return h.ChatsHandler.CreateMessage(ctx, in, out)
 }

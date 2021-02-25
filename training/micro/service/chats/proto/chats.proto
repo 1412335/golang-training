@@ -8,6 +8,7 @@ import "google/protobuf/timestamp.proto";
 
 service Chats {
 	rpc CreateChat(CreateChatRequest) returns (CreateChatResponse) {}	
+	rpc CreateMessage(CreateMessageRequest) returns (CreateMessageResponse) {}
 }
 
 message Chat {
@@ -22,4 +23,22 @@ message CreateChatRequest {
 
 message CreateChatResponse {
 	Chat chat = 1;
+}
+
+message Message {
+	string id = 1;
+	string author = 2;
+	string chat_id = 3;
+	string text = 4;
+	google.protobuf.Timestamp send_at = 5;
+}
+
+message CreateMessageRequest {
+	string author = 1;
+	string chat_id = 2;
+	string text = 3;
+}
+
+message CreateMessageResponse {
+	Message message = 1;
 }

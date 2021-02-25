@@ -23,7 +23,10 @@ func testHandler(t *testing.T) *Chats {
 	require.NoError(t, err)
 
 	// migration
-	err = db.AutoMigrate(&Chat{})
+	err = db.AutoMigrate(
+		&Chat{},
+		&Message{},
+	)
 	require.NoError(t, err)
 
 	return &Chats{
@@ -90,6 +93,105 @@ func TestChats_CreateChat(t *testing.T) {
 				} else {
 					require.True(t, rsp.Chat.CreatedAt.AsTime().Equal(chat.CreatedAt.AsTime()))
 				}
+			}
+		})
+	}
+}
+
+func TestChats_CreateMessage(t *testing.T) {
+	// handler
+	h := testHandler(t)
+	require.NotNil(t, h)
+
+	tests := []struct {
+		name   string
+		chatId string
+		author string
+		text   string
+		err    error
+	}{
+		{
+			name: "MissingChatID",
+			err:  ErrMissingChatId,
+		},
+		{
+			name:   "MissingAuthor",
+			chatId: "a",
+			err:    ErrMissingAuthor,
+		},
+		{
+			name:   "ChatNotFound",
+			chatId: "a",
+			author: "a",
+			err:    ErrChatNotFound,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &chats.CreateMessageRequest{
+				ChatId: tt.chatId,
+				Author: tt.author,
+				Text:   tt.text,
+			}
+			rsp := &chats.CreateMessageResponse{}
+			err := h.CreateMessage(context.TODO(), req, rsp)
+			if tt.err != nil {
+				require.ErrorIs(t, err, tt.err)
+				require.Nil(t, rsp.Message)
+			}
+		})
+	}
+
+	// mockup chat
+	req := &chats.CreateChatRequest{
+		UserIds: []string{"1", "2"},
+	}
+	rsp := &chats.CreateChatResponse{}
+	err := h.CreateChat(context.TODO(), req, rsp)
+	require.NoError(t, err)
+	require.NotNil(t, rsp.Chat)
+
+	// test
+	tests2 := []struct {
+		name   string
+		chatId string
+		author string
+		text   string
+		err    error
+	}{
+		{
+			name:   "AuthorNotFound",
+			chatId: rsp.Chat.Id,
+			author: "a",
+			err:    ErrAuthorNotFound,
+		},
+		{
+			name:   "Valid",
+			chatId: rsp.Chat.Id,
+			author: rsp.Chat.UserIds[0],
+			text:   "text",
+		},
+	}
+	for _, tt := range tests2 {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &chats.CreateMessageRequest{
+				ChatId: tt.chatId,
+				Author: tt.author,
+				Text:   tt.text,
+			}
+			rsp := &chats.CreateMessageResponse{}
+			err := h.CreateMessage(context.TODO(), req, rsp)
+			if tt.err != nil {
+				require.ErrorIs(t, err, tt.err)
+				require.Nil(t, rsp.Message)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, rsp.Message)
+				require.NotEmpty(t, rsp.Message.Id)
+				require.Equal(t, rsp.Message.ChatId, tt.chatId)
+				require.Equal(t, rsp.Message.Author, tt.author)
+				require.Equal(t, rsp.Message.Text, tt.text)
+				require.NotNil(t, rsp.Message.SendAt)
 			}
 		})
 	}
