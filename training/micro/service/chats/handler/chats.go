@@ -160,7 +160,8 @@ func (h *Chats) CreateMessage(ctx context.Context, req *chats.CreateMessageReque
 		ChatID: req.ChatId,
 		Author: req.Author,
 		Text:   req.Text,
-		SendAt: time.Now(),
+		SendAt: time.Now().Round(time.Microsecond),
+		// https://stackoverflow.com/questions/60433870/saving-time-time-in-golang-to-postgres-timestamp-with-time-zone-field
 	}
 
 	// write to db
@@ -176,5 +177,46 @@ func (h *Chats) CreateMessage(ctx context.Context, req *chats.CreateMessageReque
 		return errors.InternalServerError("DECODE_ERROR", "decode error")
 	}
 
+	return nil
+}
+
+func (h *Chats) ListMessage(ctx context.Context, req *chats.ListMessageRequest, rsp *chats.ListMessageResponse) error {
+	logger.Info("chats.ListMessage request")
+	if len(req.ChatId) == 0 {
+		return ErrMissingChatId
+	}
+
+	// build query
+	q := h.DB.Where(&Chat{ID: req.ChatId}).Preload("Messages", func(db *gorm.DB) *gorm.DB {
+		limit := 25
+		if req.Limit != nil {
+			limit = int(req.Limit.Value)
+		}
+		// one day ago
+		after := time.Now().Add(-24 * time.Hour)
+		if req.After != nil && req.After.IsValid() {
+			after = req.After.AsTime()
+		}
+		return db.Where("send_at > ?", after).Order("send_at desc").Limit(limit)
+	})
+
+	// lookup chat & its messages
+	var chat Chat
+	if err := q.First(&chat).Error; err == gorm.ErrRecordNotFound {
+		return ErrChatNotFound
+	} else if err != nil {
+		logger.Errorf("lookup chat error: %v", err)
+		return ErrDatabase
+	}
+
+	rsp.Messages = make([]*chats.Message, len(chat.Messages))
+	for i, msg := range chat.Messages {
+		var err error
+		rsp.Messages[i], err = msg.Serialize()
+		if err != nil {
+			logger.Errorf("decode msg failed: %v", err)
+			return errors.InternalServerError("DECODE_ERROR", "decode error")
+		}
+	}
 	return nil
 }

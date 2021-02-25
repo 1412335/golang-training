@@ -7,6 +7,7 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	_ "google.golang.org/protobuf/types/known/timestamppb"
+	_ "google.golang.org/protobuf/types/known/wrapperspb"
 	math "math"
 )
 
@@ -45,6 +46,7 @@ func NewChatsEndpoints() []*api.Endpoint {
 type ChatsService interface {
 	CreateChat(ctx context.Context, in *CreateChatRequest, opts ...client.CallOption) (*CreateChatResponse, error)
 	CreateMessage(ctx context.Context, in *CreateMessageRequest, opts ...client.CallOption) (*CreateMessageResponse, error)
+	ListMessage(ctx context.Context, in *ListMessageRequest, opts ...client.CallOption) (*ListMessageResponse, error)
 }
 
 type chatsService struct {
@@ -79,17 +81,29 @@ func (c *chatsService) CreateMessage(ctx context.Context, in *CreateMessageReque
 	return out, nil
 }
 
+func (c *chatsService) ListMessage(ctx context.Context, in *ListMessageRequest, opts ...client.CallOption) (*ListMessageResponse, error) {
+	req := c.c.NewRequest(c.name, "Chats.ListMessage", in)
+	out := new(ListMessageResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Chats service
 
 type ChatsHandler interface {
 	CreateChat(context.Context, *CreateChatRequest, *CreateChatResponse) error
 	CreateMessage(context.Context, *CreateMessageRequest, *CreateMessageResponse) error
+	ListMessage(context.Context, *ListMessageRequest, *ListMessageResponse) error
 }
 
 func RegisterChatsHandler(s server.Server, hdlr ChatsHandler, opts ...server.HandlerOption) error {
 	type chats interface {
 		CreateChat(ctx context.Context, in *CreateChatRequest, out *CreateChatResponse) error
 		CreateMessage(ctx context.Context, in *CreateMessageRequest, out *CreateMessageResponse) error
+		ListMessage(ctx context.Context, in *ListMessageRequest, out *ListMessageResponse) error
 	}
 	type Chats struct {
 		chats
@@ -108,4 +122,8 @@ func (h *chatsHandler) CreateChat(ctx context.Context, in *CreateChatRequest, ou
 
 func (h *chatsHandler) CreateMessage(ctx context.Context, in *CreateMessageRequest, out *CreateMessageResponse) error {
 	return h.ChatsHandler.CreateMessage(ctx, in, out)
+}
+
+func (h *chatsHandler) ListMessage(ctx context.Context, in *ListMessageRequest, out *ListMessageResponse) error {
+	return h.ChatsHandler.ListMessage(ctx, in, out)
 }

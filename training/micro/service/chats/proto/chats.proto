@@ -5,10 +5,12 @@ package chats;
 option go_package = "proto;chats";
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
 
 service Chats {
 	rpc CreateChat(CreateChatRequest) returns (CreateChatResponse) {}	
 	rpc CreateMessage(CreateMessageRequest) returns (CreateMessageResponse) {}
+	rpc ListMessage(ListMessageRequest) returns (ListMessageResponse) {}
 }
 
 message Chat {
@@ -41,4 +43,14 @@ message CreateMessageRequest {
 
 message CreateMessageResponse {
 	Message message = 1;
+}
+
+message ListMessageRequest {
+	string chat_id = 1;
+	google.protobuf.Timestamp after = 2;
+	google.protobuf.Int32Value limit = 3;
+}
+
+message ListMessageResponse {
+	repeated Message messages = 1;
 }

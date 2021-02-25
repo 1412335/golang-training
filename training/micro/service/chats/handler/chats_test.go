@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -192,6 +194,123 @@ func TestChats_CreateMessage(t *testing.T) {
 				require.Equal(t, rsp.Message.Author, tt.author)
 				require.Equal(t, rsp.Message.Text, tt.text)
 				require.NotNil(t, rsp.Message.SendAt)
+			}
+		})
+	}
+}
+
+func TestChats_ListMessage(t *testing.T) {
+	// handler
+	h := testHandler(t)
+	require.NotNil(t, h)
+
+	tests := []struct {
+		name   string
+		chatId string
+		err    error
+	}{
+		{
+			name: "MissingChatID",
+			err:  ErrMissingChatId,
+		},
+		{
+			name:   "ChatNotFound",
+			chatId: "a",
+			err:    ErrChatNotFound,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &chats.ListMessageRequest{
+				ChatId: tt.chatId,
+			}
+			rsp := &chats.ListMessageResponse{}
+			err := h.ListMessage(context.TODO(), req, rsp)
+			if tt.err != nil {
+				require.ErrorIs(t, err, tt.err)
+				require.Nil(t, rsp.Messages)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, rsp.Messages)
+			}
+		})
+	}
+
+	// mockup chat
+	req := &chats.CreateChatRequest{
+		UserIds: []string{"1", "2"},
+	}
+	rsp := &chats.CreateChatResponse{}
+	err := h.CreateChat(context.TODO(), req, rsp)
+	require.NoError(t, err)
+	require.NotNil(t, rsp.Chat)
+
+	// mockup messages
+	messReq1 := &chats.CreateMessageRequest{
+		ChatId: rsp.Chat.Id,
+		Author: rsp.Chat.UserIds[0],
+		Text:   "mess 1",
+	}
+	messRsp1 := &chats.CreateMessageResponse{}
+	err = h.CreateMessage(context.TODO(), messReq1, messRsp1)
+	require.NoError(t, err)
+	require.NotNil(t, messRsp1.Message)
+
+	messReq2 := &chats.CreateMessageRequest{
+		ChatId: rsp.Chat.Id,
+		Author: rsp.Chat.UserIds[1],
+		Text:   "mess 2",
+	}
+	messRsp2 := &chats.CreateMessageResponse{}
+	err = h.CreateMessage(context.TODO(), messReq2, messRsp2)
+	require.NoError(t, err)
+	require.NotNil(t, messRsp2.Message)
+
+	// test
+	tests2 := []struct {
+		name   string
+		chatId string
+		after  *timestamppb.Timestamp
+		limit  *wrapperspb.Int32Value
+		err    error
+	}{
+		{
+			name:   "Valid",
+			chatId: rsp.Chat.Id,
+		},
+	}
+	for _, tt := range tests2 {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &chats.ListMessageRequest{
+				ChatId: tt.chatId,
+				After:  tt.after,
+				Limit:  tt.limit,
+			}
+			rsp := &chats.ListMessageResponse{}
+			err := h.ListMessage(context.TODO(), req, rsp)
+			if tt.err != nil {
+				require.ErrorIs(t, err, tt.err)
+				require.Nil(t, rsp.Messages)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, rsp.Messages)
+				for _, msg := range rsp.Messages {
+					require.NotNil(t, msg)
+					switch msg.Id {
+					case messRsp1.Message.Id:
+						require.Equal(t, msg.ChatId, messRsp1.Message.ChatId)
+						require.Equal(t, msg.Author, messRsp1.Message.Author)
+						require.Equal(t, msg.Text, messRsp1.Message.Text)
+						require.True(t, msg.SendAt.AsTime().Equal(messRsp1.Message.SendAt.AsTime()))
+					case messRsp2.Message.Id:
+						require.Equal(t, msg.ChatId, messRsp2.Message.ChatId)
+						require.Equal(t, msg.Author, messRsp2.Message.Author)
+						require.Equal(t, msg.Text, messRsp2.Message.Text)
+						require.True(t, msg.SendAt.AsTime().Equal(messRsp2.Message.SendAt.AsTime()))
+					default:
+						t.Errorf("Unexpected message: %v", msg.Id)
+					}
+				}
 			}
 		})
 	}

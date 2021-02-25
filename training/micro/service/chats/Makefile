@@ -28,6 +28,10 @@ lint: fmt
 test: lint
 	go test -v ./... -cover
 
+.PHONY: utest
+utest: lint update
+	go test -v ./... -cover
+
 .PHONY: docker
 docker:
 	docker build . -t chats:latest
