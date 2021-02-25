@@ -24,12 +24,16 @@ lint: fmt
 	golangci-lint run ./...
 
 .PHONY: test
-test:
+test: lint
 	go test -v ./... -cover
 
 .PHONY: docker
 docker:
 	docker build . -t users:latest
+
+.PHONY: status
+status: 
+	micro status
 
 .PHONY: run
 run: 
