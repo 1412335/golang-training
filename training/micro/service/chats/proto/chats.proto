@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package chats;
+
+option go_package = "proto;chats";
+
+import "google/protobuf/timestamp.proto";
+
+service Chats {
+	rpc CreateChat(CreateChatRequest) returns (CreateChatResponse) {}	
+}
+
+message Chat {
+	string id = 1;
+	repeated string user_ids = 2;
+	google.protobuf.Timestamp created_at = 3;
+}
+
+message CreateChatRequest {
+	repeated string user_ids = 1;
+}
+
+message CreateChatResponse {
+	Chat chat = 1;
+}
