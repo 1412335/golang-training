@@ -312,6 +312,9 @@ func TestChats_ListMessage(t *testing.T) {
 				require.Nil(t, rsp.Messages)
 			} else {
 				require.NoError(t, err)
+				require.NotNil(t, rsp.Chat)
+				// require.Equal(t, rsp.Chat.UserIds, tt.req.UserIds)
+				// require.True(t, rsp.Chat.CreatedAt.AsTime().Equal(chat.CreatedAt.AsTime()))
 				require.NotNil(t, rsp.Messages)
 				if tt.limit != nil {
 					require.Len(t, rsp.Messages, int(tt.limit.Value))

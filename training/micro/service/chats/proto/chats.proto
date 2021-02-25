@@ -52,5 +52,6 @@ message ListMessageRequest {
 }
 
 message ListMessageResponse {
-	repeated Message messages = 1;
+	Chat chat = 1;
+	repeated Message messages = 2;
 }

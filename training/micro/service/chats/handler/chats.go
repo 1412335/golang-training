@@ -209,9 +209,15 @@ func (h *Chats) ListMessage(ctx context.Context, req *chats.ListMessageRequest, 
 		return ErrDatabase
 	}
 
+	var err error
+	rsp.Chat, err = chat.Serialize()
+	if err != nil {
+		logger.Errorf("decode chat failed: %v", err)
+		return errors.InternalServerError("DECODE_ERROR", "decode error")
+	}
+
 	rsp.Messages = make([]*chats.Message, len(chat.Messages))
 	for i, msg := range chat.Messages {
-		var err error
 		rsp.Messages[i], err = msg.Serialize()
 		if err != nil {
 			logger.Errorf("decode msg failed: %v", err)
