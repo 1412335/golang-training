@@ -1,4 +1,4 @@
-package configs
+package config
 
 import (
 	"time"
@@ -13,14 +13,8 @@ const (
 )
 
 type ServiceConfig struct {
-	ManagerClient  *ManagerClient
-	JWT            *JWT
-	Database       *Database
-	Authentication *Authentication
-	// server using
-	AccessibleRoles map[string][]string
-	// client using
-	AuthMethods map[string]bool
+	JWT      *JWT
+	Database *Database
 }
 
 // json web token
@@ -32,9 +26,11 @@ type JWT struct {
 
 type Database struct {
 	Host     string
+	Port     int
 	User     string
 	Password string
-	Scheme   string
+	DBName   string
+	Debug    bool
 }
 
 // manager grpc-pool

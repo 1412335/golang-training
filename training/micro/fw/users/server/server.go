@@ -2,43 +2,28 @@ package main
 
 import (
 	"context"
-	"fw/configs"
+	"fw/config"
+	"fw/pkg/dal/postgres"
 	"fw/users/handler"
 	pb "fw/users/proto"
 	"os"
-	"time"
+	// "time"
 	// "path/filepath"
 	"strings"
 
 	"github.com/micro/micro/v3/service"
-	// "github.com/micro/micro/v3/service/config"
+	// microConfig "github.com/micro/micro/v3/service/config"
 	"github.com/micro/micro/v3/service/context/metadata"
 	"github.com/micro/micro/v3/service/errors"
 	"github.com/micro/micro/v3/service/logger"
 	"github.com/micro/micro/v3/service/server"
-
 	// "github.com/asim/go-micro/v3/config"
 	// // "github.com/asim/go-micro/v3/config/source"
 	// "github.com/asim/go-micro/v3/config/source/env"
 	// "github.com/asim/go-micro/v3/config/source/file"
-
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	// "gorm.io/driver/postgres"
+	// "gorm.io/gorm"
 )
-
-var dbAddress = "postgresql://root:root@localhost:5432/users?sslmode=disable"
-
-func connectDatabase() (*gorm.DB, error) {
-	// connect db
-	// cfg, err := config.Get("users.db")
-	// if err != nil {
-	// 	logger.Fatalf("Error loading config: %v", err)
-	// }
-	// dsn := cfg.String(dbAddress)
-	dsn := dbAddress
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	return db, err
-}
 
 type Authentication struct {
 	jwtManager *handler.JWTManager
@@ -84,7 +69,7 @@ func (a *Authentication) AuthWrapper(fn server.HandlerFunc) server.HandlerFunc {
 	}
 }
 
-func loadConfig() *configs.ServiceConfig {
+func loadConfig() *config.ServiceConfig {
 	// conf, err := config.NewConfig()
 	// if err != nil {
 	// 	logger.Fatalf("Expected no error but got %v", err)
@@ -107,27 +92,15 @@ func loadConfig() *configs.ServiceConfig {
 	// }
 
 	cfgFile := os.Getenv("CONFIG_FILE")
-	// cfgFile = "config.yml"
-
-	srvConfigs := &configs.ServiceConfig{}
-
-	if err := configs.LoadConfig(cfgFile, srvConfigs); err != nil {
+	srvConfigs := &config.ServiceConfig{}
+	if err := config.LoadConfig(cfgFile, srvConfigs); err != nil {
 		logger.Fatalf("Load config failed: %v", err)
 	}
-	logger.Infof("Load config success: %v", cfgFile)
-
-	srvConfigs.JWT = &configs.JWT{
-		SecretKey: "lu",
-		Duration:  10 * time.Second,
-		Issuer:    "lu",
-	}
-
+	logger.Infof("Load config success: %v \n %+v \n %+v", cfgFile, srvConfigs.JWT, srvConfigs.Database)
 	return srvConfigs
 }
 
 func main() {
-	v, _ := os.Getwd()
-	logger.Infof("WD: %v", v)
 	// load config
 	srvConfigs := loadConfig()
 	// jwtManager
@@ -147,8 +120,13 @@ func main() {
 	// optionally setup command line usage
 	srv.Init()
 
-	db, err := connectDatabase()
+	dal, err := postgres.NewDataAccessLayer(context.Background(), srvConfigs.Database)
 	if err != nil {
+		logger.Fatalf("Error connect database: %v", err)
+	}
+	// defer dal.Disconnect()
+	db := dal.GetDatabase()
+	if db == nil {
 		logger.Fatalf("Error connect database: %v", err)
 	}
 	if err := db.AutoMigrate(

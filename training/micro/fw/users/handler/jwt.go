@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"fw/configs"
+	"fw/config"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -15,11 +15,11 @@ type JWTManager struct {
 	issuer        string
 }
 
-func NewJWTManager(config *configs.JWT) *JWTManager {
+func NewJWTManager(cfg *config.JWT) *JWTManager {
 	return &JWTManager{
-		secretKey:     []byte(config.SecretKey),
-		tokenDuration: config.Duration,
-		issuer:        config.Issuer,
+		secretKey:     []byte(cfg.SecretKey),
+		tokenDuration: cfg.Duration,
+		issuer:        cfg.Issuer,
 	}
 }
 
