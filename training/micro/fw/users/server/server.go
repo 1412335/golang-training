@@ -36,6 +36,7 @@ func (a *Authentication) AuthWrapper(fn server.HandlerFunc) server.HandlerFunc {
 	return func(ctx context.Context, req server.Request, rsp interface{}) error {
 		// User login or create
 		if req.Endpoint() == "Users.Create" || req.Endpoint() == "Users.Auth" {
+			// TEST
 			ctx2 := metadata.Set(ctx, "UserID", "1111")
 			return fn(ctx2, req, rsp)
 		}

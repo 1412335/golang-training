@@ -2,6 +2,7 @@ package broker
 
 import (
 	"errors"
+	"fmt"
 	microBroker "github.com/micro/micro/v3/service/broker"
 	logger "github.com/micro/micro/v3/service/logger"
 )
@@ -28,7 +29,6 @@ func (b *Broker) SendMsg(objectToSend []byte, header map[string]string, topic st
 	if b.br == nil {
 		err1 := errors.New("broker is not defined or connected")
 		return err1
-
 	}
 	err := b.br.Connect()
 	if err != nil {
@@ -40,4 +40,17 @@ func (b *Broker) SendMsg(objectToSend []byte, header map[string]string, topic st
 	}
 	logger.Infof("sent message to Topic %s. Message %v", topic, &header)
 	return nil
+}
+
+// subscribe a topic with queue specified
+func (b *Broker) SubMsg(topic, queueName string) error {
+	var opts []microBroker.SubscribeOption
+	if queueName != "" {
+		opts = append(opts, microBroker.Queue(queueName))
+	}
+	_, err := b.br.Subscribe(topic, func(p *microBroker.Message) error {
+		fmt.Println("[sub] received message:", string(p.Body), "header", p.Header)
+		return nil
+	}, opts...)
+	return err
 }

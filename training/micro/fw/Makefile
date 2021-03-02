@@ -10,6 +10,7 @@ init:
 .PHONY: proto
 proto:
 	protoc --proto_path=$$GOPATH/src:. --micro_out=source_relative:.. --go_out=. --go_opt=paths=source_relative users/proto/users.proto
+	protoc --proto_path=$$GOPATH/src:. --micro_out=source_relative:.. --go_out=. --go_opt=paths=source_relative audit/proto/audit.proto
 	
 # format
 .PHONY: fmt
@@ -41,6 +42,10 @@ micrologin:
 microstartusersrv:
 	micro run --env_vars "CONFIG_FILE=$$PWD/config.yml,MICRO_BROKER=nats,MICRO_BROKER_ADDRESS=natsUser:TestDB@home2@localhost" --name users users/server
 
+.PHONY: microstartauditsrv
+microstartauditsrv:
+	micro run --env_vars "CONFIG_FILE=$$PWD/config.yml,MICRO_BROKER=nats,MICRO_BROKER_ADDRESS=natsUser:TestDB@home2@localhost" --name audit audit/server
+
 .PHONY: micrologsusersrv
 micrologsusersrv:
 	micro logs -f users
@@ -66,6 +71,7 @@ microlocaldown:
 .PHONY: microkillsrvs
 microkillsrvs:
 	micro kill users
+	micro kill audit
 	
 .PHONY: microupdatesrvs
 microupdatesrvs:
