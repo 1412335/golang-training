@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fw/config"
+	"fw/pkg/audit"
+	"fw/pkg/broker"
 	"fw/pkg/dal/postgres"
 	"fw/users/handler"
 	pb "fw/users/proto"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/micro/micro/v3/service"
 	// microConfig "github.com/micro/micro/v3/service/config"
+	microBroker "github.com/micro/micro/v3/service/broker"
 	"github.com/micro/micro/v3/service/context/metadata"
 	"github.com/micro/micro/v3/service/errors"
 	"github.com/micro/micro/v3/service/logger"
@@ -33,7 +36,8 @@ func (a *Authentication) AuthWrapper(fn server.HandlerFunc) server.HandlerFunc {
 	return func(ctx context.Context, req server.Request, rsp interface{}) error {
 		// User login or create
 		if req.Endpoint() == "Users.Create" || req.Endpoint() == "Users.Auth" {
-			return fn(ctx, req, rsp)
+			ctx2 := metadata.Set(ctx, "UserID", "1111")
+			return fn(ctx2, req, rsp)
 		}
 
 		// read authorization token from context metadata
@@ -63,7 +67,7 @@ func (a *Authentication) AuthWrapper(fn server.HandlerFunc) server.HandlerFunc {
 		}
 
 		// Add current user to context to use in saving audit records
-		ctx2 := metadata.Set(ctx, "userid", claims.User.ID)
+		ctx2 := metadata.Set(ctx, "UserID", claims.User.ID)
 
 		return fn(ctx2, req, rsp)
 	}
@@ -135,8 +139,15 @@ func main() {
 		logger.Fatalf("Error migrate database: %v", err)
 	}
 
+	// setup nats broker
+	broker := broker.New(microBroker.DefaultBroker)
+	defer broker.Disconnect()
+
+	// audit
+	audit := &audit.Audit{Broker: broker}
+
 	// Register handler
-	if err := pb.RegisterUsersHandler(srv.Server(), handler.NewUsersHandler(db, jwtManager)); err != nil {
+	if err := pb.RegisterUsersHandler(srv.Server(), handler.NewUsersHandler(db, jwtManager, audit)); err != nil {
 		logger.Fatalf("Error registering handler: %v", err)
 	}
 

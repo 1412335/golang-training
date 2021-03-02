@@ -9,13 +9,36 @@ services:
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=root
     volumes:
-      - ./data/:/var/lib/postgresql/data
+      - ./docker/postgres/data/:/var/lib/postgresql/data
+    restart: on-failure
+
+  nats:
+    container_name: nats
+    build:
+      context: ./docker/nats
+      dockerfile: Dockerfile
+    ports:
+      - "8222:8222"
+      - "4222:4222"
+      - "6222:6222"
+    restart: on-failure
+
+  timescaledb:
+    container_name: timescaledb
+    image: "timescale/timescaledb:latest-pg12"
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_PASSWORD=root2
+    volumes:
+      # - ./docker/timescaledb/data:/var/lib/postgresql/data
+      - timescaledb:/var/lib/postgresql/data
     restart: on-failure
 
   microserver:
     container_name: microserver
     build:
-      context: ./micro
+      context: ./docker/micro
       dockerfile: Dockerfile
     command: server
     ports:
@@ -25,3 +48,6 @@ services:
       # - ./user:/goTempM/user
       # - ./go.mod:/goTempM/go.mod
       # - ./Makefile:/goTempM/Makefile
+
+volumes:
+  timescaledb:

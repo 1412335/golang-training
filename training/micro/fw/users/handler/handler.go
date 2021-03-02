@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"regexp"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
+	"fw/pkg/audit"
 	pb "fw/users/proto"
 )
 
@@ -75,21 +77,61 @@ type User struct {
 	Email     string `gorm:"uniqueIndex"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	audit     *audit.Audit `gorm:"-",json:"-"`
 }
 
 func (u *User) sanitize() *pb.User {
 	return &pb.User{}
 }
 
+func (u *User) BeforeCreate(tx *gorm.DB) error {
+	logger.Infof("before create")
+	return nil
+}
+
+func (u *User) AfterCreate(tx *gorm.DB) error {
+	ctx := tx.Statement.Context
+	err := u.sendUserAudit(ctx, "Users", "AfterCreate", "insert", "user", u.ID)
+	if err != nil {
+		logger.Errorf("Call AfterCreate failed: %v", err)
+	}
+	return nil
+}
+
+func (u *User) BeforeUpdate(tx *gorm.DB) error {
+	logger.Infof("before update")
+	return nil
+}
+
+// Updating data in same transaction
+func (u *User) AfterUpdate(tx *gorm.DB) error {
+	ctx := tx.Statement.Context
+	err := u.sendUserAudit(ctx, "Users", "AfterUpdate", "insert", "user", u.ID)
+	if err != nil {
+		logger.Errorf("Call AfterUpdate failed: %v", err)
+	}
+	return
+}
+
+func (u *User) sendUserAudit(ctx context.Context, serviceName, actionFunc, actionType string, objectName string, iObjectId string) error {
+	bytes, err := json.Marshal(u)
+	if err != nil {
+		return errors.InternalServerError("ENCODE_ERROR", "encode user error")
+	}
+	return u.audit.Send(ctx, serviceName, actionFunc, actionType, objectName, iObjectId, bytes)
+}
+
 type usersHandler struct {
 	DB         *gorm.DB
 	JWTManager *JWTManager
+	audit      *audit.Audit
 }
 
-func NewUsersHandler(db *gorm.DB, jwtManager *JWTManager) *usersHandler {
+func NewUsersHandler(db *gorm.DB, jwtManager *JWTManager, audit *audit.Audit) *usersHandler {
 	return &usersHandler{
 		DB:         db,
 		JWTManager: jwtManager,
+		audit:      audit,
 	}
 }
 
@@ -116,13 +158,14 @@ func (h *usersHandler) Create(ctx context.Context, req *pb.CreateRequest, rsp *p
 	}
 
 	// create
-	return h.DB.Transaction(func(tx *gorm.DB) error {
+	return h.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		user := &User{
 			ID:        uuid.New().String(),
 			FirstName: req.FirstName,
 			LastName:  req.LastName,
 			Email:     strings.ToLower(req.Email),
 			Password:  pwdHashed,
+			audit:     h.audit,
 		}
 		if err := tx.Create(user).Error; err != nil && strings.Contains(err.Error(), "idx_users_email") {
 			return ErrDuplicateEmail
@@ -190,7 +233,7 @@ func (h *usersHandler) Update(ctx context.Context, req *pb.UpdateRequest, rsp *p
 		user.Password = pwdHashed
 	}
 
-	if err := h.DB.Save(user).Error; err != nil && strings.Contains(err.Error(), "idx_users_email") {
+	if err := h.DB.WithContext(ctx).Save(user).Error; err != nil && strings.Contains(err.Error(), "idx_users_email") {
 		return ErrDuplicateEmail
 	} else if err != nil {
 		logger.Errorf("Error connecting from db: %v", err)

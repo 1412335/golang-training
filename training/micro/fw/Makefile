@@ -39,7 +39,7 @@ micrologin:
 # running single service
 .PHONY: microstartusersrv
 microstartusersrv:
-	micro run --env_vars "CONFIG_FILE=$$PWD/config.yml" --name users users/server
+	micro run --env_vars "CONFIG_FILE=$$PWD/config.yml,MICRO_BROKER=nats,MICRO_BROKER_ADDRESS=natsUser:TestDB@home2@localhost" --name users users/server
 
 .PHONY: micrologsusersrv
 micrologsusersrv:
@@ -53,8 +53,9 @@ microstartsrvs:
 # Run the whole application locally, micro server must already be running locally
 microlocalup:
 	#micro server
-	# docker-compose up -d pgdb timescaledb redis arangodb nats
-	#sleep 20s
+	docker-compose up -d nats
+	sleep 20s
+	docker-compose ps
 	make micrologin
 	make microstartsrvs
 
@@ -77,7 +78,7 @@ microupdatesrvs:
 ## Start the whole application running in Docker
 microup:
 	docker-compose up -d microserver
-	# docker-compose up -d pgdb timescaledb redis arangodb nats
+	docker-compose up -d timescaledb nats
 	sleep 20s
 	docker exec microserver make micrologin
 	docker exec microserver make microstartsrvs

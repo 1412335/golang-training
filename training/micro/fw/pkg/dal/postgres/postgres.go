@@ -78,7 +78,11 @@ func (dal *DataAccessLayer) Connect(ctx context.Context) (*gorm.DB, error) {
 }
 
 func (dal *DataAccessLayer) Disconnect() error {
-	return nil
+	sqlDB, err := dal.dbInstance.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
 }
 
 func (dal *DataAccessLayer) GetDatabase() *gorm.DB {
