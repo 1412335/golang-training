@@ -1,0 +1,27 @@
+version: "3"
+services:
+  postgresql:
+    container_name: postgresql
+    image: "postgres:alpine"
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+    volumes:
+      - ./data/:/var/lib/postgresql/data
+    restart: on-failure
+
+  microserver:
+    container_name: microserver
+    build:
+      context: ./micro
+      dockerfile: Dockerfile
+    command: server
+    ports:
+      - "8080-8081:8080-8081/tcp"
+    volumes:
+      - ./:/goTempM/
+      # - ./user:/goTempM/user
+      # - ./go.mod:/goTempM/go.mod
+      # - ./Makefile:/goTempM/Makefile

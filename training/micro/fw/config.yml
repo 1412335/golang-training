@@ -1,0 +1,5 @@
+ServiceConfig:
+  JWT:
+    SecretKey: lu
+    Duration: "100s"
+    Issuer: lu
