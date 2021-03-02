@@ -1,0 +1,8 @@
+# audit srv config
+database:
+  host: "localhost"   
+  port: 5433
+  user:  "root2"
+  password: "root2"
+  dbName: "postgres"
+  debug: false

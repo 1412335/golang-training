@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"fw/config"
+	"fw/users/config"
 
 	"github.com/dgrijalva/jwt-go"
 )

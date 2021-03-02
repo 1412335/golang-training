@@ -1,4 +1,4 @@
-# serviceConfig:
+# userServiceConfig:
 jwt:
   secretKey: "lu"
   duration: "100s"

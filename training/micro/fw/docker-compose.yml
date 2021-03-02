@@ -29,6 +29,7 @@ services:
     ports:
       - "5433:5432"
     environment:
+      - POSTGRES_USER=root2
       - POSTGRES_PASSWORD=root2
     volumes:
       # - ./docker/timescaledb/data:/var/lib/postgresql/data

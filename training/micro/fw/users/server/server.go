@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"fw/config"
 	"fw/pkg/audit"
 	"fw/pkg/broker"
+	pkgConfig "fw/pkg/config"
 	"fw/pkg/dal/postgres"
+	"fw/users/config"
 	"fw/users/handler"
 	pb "fw/users/proto"
 	"os"
@@ -98,7 +99,7 @@ func loadConfig() *config.ServiceConfig {
 
 	cfgFile := os.Getenv("CONFIG_FILE")
 	srvConfigs := &config.ServiceConfig{}
-	if err := config.LoadConfig(cfgFile, srvConfigs); err != nil {
+	if err := pkgConfig.LoadConfig(cfgFile, srvConfigs); err != nil {
 		logger.Fatalf("Load config failed: %v", err)
 	}
 	logger.Infof("Load config success: %v \n %+v \n %+v", cfgFile, srvConfigs.JWT, srvConfigs.Database)

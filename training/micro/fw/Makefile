@@ -20,7 +20,7 @@ fmt:
 # linter
 .PHONY: lint
 lint: fmt
-	golangci-lint run ./...
+	golangci-lint run ./... --timeout 1000s
 
 # test
 .PHONY: test
@@ -40,11 +40,11 @@ micrologin:
 # running single service
 .PHONY: microstartusersrv
 microstartusersrv:
-	micro run --env_vars "CONFIG_FILE=$$PWD/config.yml,MICRO_BROKER=nats,MICRO_BROKER_ADDRESS=natsUser:TestDB@home2@localhost" --name users users/server
+	micro run --env_vars "CONFIG_FILE=$$PWD/users/config.yml,MICRO_BROKER=nats,MICRO_BROKER_ADDRESS=natsUser:TestDB@home2@localhost" --name users users/server
 
 .PHONY: microstartauditsrv
 microstartauditsrv:
-	micro run --env_vars "CONFIG_FILE=$$PWD/config.yml,MICRO_BROKER=nats,MICRO_BROKER_ADDRESS=natsUser:TestDB@home2@localhost" --name audit audit/server
+	micro run --env_vars "CONFIG_FILE=$$PWD/audit/config.yml,MICRO_BROKER=nats,MICRO_BROKER_ADDRESS=natsUser:TestDB@home2@localhost" --name audit audit/server
 
 .PHONY: micrologsusersrv
 micrologsusersrv:
@@ -54,11 +54,12 @@ micrologsusersrv:
 microstartsrvs:
 	# make microkillsrvs
 	make microstartusersrv
+	make microstartauditsrv
 
 # Run the whole application locally, micro server must already be running locally
 microlocalup:
 	#micro server
-	docker-compose up -d nats
+	docker-compose up -d nats timescaledb
 	sleep 20s
 	docker-compose ps
 	make micrologin
@@ -76,6 +77,7 @@ microkillsrvs:
 .PHONY: microupdatesrvs
 microupdatesrvs:
 	micro update users
+	micro update audit
 
 # Docker
 # microstartsrvscont:

@@ -43,8 +43,6 @@ func NewAuditEndpoints() []*api.Endpoint {
 
 type AuditService interface {
 	Call(ctx context.Context, in *Request, opts ...client.CallOption) (*Response, error)
-	Stream(ctx context.Context, in *StreamingRequest, opts ...client.CallOption) (Audit_StreamService, error)
-	PingPong(ctx context.Context, opts ...client.CallOption) (Audit_PingPongService, error)
 }
 
 type auditService struct {
@@ -69,119 +67,15 @@ func (c *auditService) Call(ctx context.Context, in *Request, opts ...client.Cal
 	return out, nil
 }
 
-func (c *auditService) Stream(ctx context.Context, in *StreamingRequest, opts ...client.CallOption) (Audit_StreamService, error) {
-	req := c.c.NewRequest(c.name, "Audit.Stream", &StreamingRequest{})
-	stream, err := c.c.Stream(ctx, req, opts...)
-	if err != nil {
-		return nil, err
-	}
-	if err := stream.Send(in); err != nil {
-		return nil, err
-	}
-	return &auditServiceStream{stream}, nil
-}
-
-type Audit_StreamService interface {
-	Context() context.Context
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-	Recv() (*StreamingResponse, error)
-}
-
-type auditServiceStream struct {
-	stream client.Stream
-}
-
-func (x *auditServiceStream) Close() error {
-	return x.stream.Close()
-}
-
-func (x *auditServiceStream) Context() context.Context {
-	return x.stream.Context()
-}
-
-func (x *auditServiceStream) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *auditServiceStream) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (x *auditServiceStream) Recv() (*StreamingResponse, error) {
-	m := new(StreamingResponse)
-	err := x.stream.Recv(m)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *auditService) PingPong(ctx context.Context, opts ...client.CallOption) (Audit_PingPongService, error) {
-	req := c.c.NewRequest(c.name, "Audit.PingPong", &Ping{})
-	stream, err := c.c.Stream(ctx, req, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return &auditServicePingPong{stream}, nil
-}
-
-type Audit_PingPongService interface {
-	Context() context.Context
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-	Send(*Ping) error
-	Recv() (*Pong, error)
-}
-
-type auditServicePingPong struct {
-	stream client.Stream
-}
-
-func (x *auditServicePingPong) Close() error {
-	return x.stream.Close()
-}
-
-func (x *auditServicePingPong) Context() context.Context {
-	return x.stream.Context()
-}
-
-func (x *auditServicePingPong) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *auditServicePingPong) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (x *auditServicePingPong) Send(m *Ping) error {
-	return x.stream.Send(m)
-}
-
-func (x *auditServicePingPong) Recv() (*Pong, error) {
-	m := new(Pong)
-	err := x.stream.Recv(m)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 // Server API for Audit service
 
 type AuditHandler interface {
 	Call(context.Context, *Request, *Response) error
-	Stream(context.Context, *StreamingRequest, Audit_StreamStream) error
-	PingPong(context.Context, Audit_PingPongStream) error
 }
 
 func RegisterAuditHandler(s server.Server, hdlr AuditHandler, opts ...server.HandlerOption) error {
 	type audit interface {
 		Call(ctx context.Context, in *Request, out *Response) error
-		Stream(ctx context.Context, stream server.Stream) error
-		PingPong(ctx context.Context, stream server.Stream) error
 	}
 	type Audit struct {
 		audit
@@ -196,89 +90,4 @@ type auditHandler struct {
 
 func (h *auditHandler) Call(ctx context.Context, in *Request, out *Response) error {
 	return h.AuditHandler.Call(ctx, in, out)
-}
-
-func (h *auditHandler) Stream(ctx context.Context, stream server.Stream) error {
-	m := new(StreamingRequest)
-	if err := stream.Recv(m); err != nil {
-		return err
-	}
-	return h.AuditHandler.Stream(ctx, m, &auditStreamStream{stream})
-}
-
-type Audit_StreamStream interface {
-	Context() context.Context
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-	Send(*StreamingResponse) error
-}
-
-type auditStreamStream struct {
-	stream server.Stream
-}
-
-func (x *auditStreamStream) Close() error {
-	return x.stream.Close()
-}
-
-func (x *auditStreamStream) Context() context.Context {
-	return x.stream.Context()
-}
-
-func (x *auditStreamStream) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *auditStreamStream) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (x *auditStreamStream) Send(m *StreamingResponse) error {
-	return x.stream.Send(m)
-}
-
-func (h *auditHandler) PingPong(ctx context.Context, stream server.Stream) error {
-	return h.AuditHandler.PingPong(ctx, &auditPingPongStream{stream})
-}
-
-type Audit_PingPongStream interface {
-	Context() context.Context
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-	Send(*Pong) error
-	Recv() (*Ping, error)
-}
-
-type auditPingPongStream struct {
-	stream server.Stream
-}
-
-func (x *auditPingPongStream) Close() error {
-	return x.stream.Close()
-}
-
-func (x *auditPingPongStream) Context() context.Context {
-	return x.stream.Context()
-}
-
-func (x *auditPingPongStream) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *auditPingPongStream) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (x *auditPingPongStream) Send(m *Pong) error {
-	return x.stream.Send(m)
-}
-
-func (x *auditPingPongStream) Recv() (*Ping, error) {
-	m := new(Ping)
-	if err := x.stream.Recv(m); err != nil {
-		return nil, err
-	}
-	return m, nil
 }

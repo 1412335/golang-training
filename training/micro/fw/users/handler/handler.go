@@ -77,7 +77,7 @@ type User struct {
 	Email     string `gorm:"uniqueIndex"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	audit     *audit.Audit `gorm:"-",json:"-"`
+	audit     *audit.Audit `gorm:"-" json:"-"`
 }
 
 func (u *User) sanitize() *pb.User {
@@ -110,7 +110,7 @@ func (u *User) AfterUpdate(tx *gorm.DB) error {
 	if err != nil {
 		logger.Errorf("Call AfterUpdate failed: %v", err)
 	}
-	return
+	return nil
 }
 
 func (u *User) sendUserAudit(ctx context.Context, serviceName, actionFunc, actionType string, objectName string, iObjectId string) error {

@@ -3,7 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"fw/config"
+	"fw/pkg/config"
 	"sync"
 	"time"
 
