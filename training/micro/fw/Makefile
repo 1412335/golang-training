@@ -40,11 +40,11 @@ micrologin:
 # running single service
 .PHONY: microstartusersrv
 microstartusersrv:
-	micro run --env_vars "CONFIG_FILE=$$PWD/users/config.yml,MICRO_BROKER=nats,MICRO_BROKER_ADDRESS=natsUser:TestDB@home2@localhost" --name users users/server
+	micro run --env_vars "CONFIG_FILE=$$PWD/users/config.yml,MICRO_BROKER=nats,MICRO_BROKER_ADDRESS=natsUser:T0pS3cr3t@localhost" --name users users/server
 
 .PHONY: microstartauditsrv
 microstartauditsrv:
-	micro run --env_vars "CONFIG_FILE=$$PWD/audit/config.yml,MICRO_BROKER=nats,MICRO_BROKER_ADDRESS=natsUser:TestDB@home2@localhost" --name audit audit/server
+	micro run --env_vars "CONFIG_FILE=$$PWD/audit/config.yml,MICRO_BROKER=nats,MICRO_BROKER_ADDRESS=natsUser:T0pS3cr3t@localhost" --name audit audit/server
 
 .PHONY: micrologsusersrv
 micrologsusersrv:

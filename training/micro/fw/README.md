@@ -16,8 +16,8 @@ Generate the proto code
 make proto
 ```
 
-Run the service
+Run the services
 
 ```
-micro run .
+make microlocalup
 ```
