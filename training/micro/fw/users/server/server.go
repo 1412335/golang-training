@@ -69,7 +69,7 @@ func (a *Authentication) AuthWrapper(fn server.HandlerFunc) server.HandlerFunc {
 		}
 
 		// Add current user to context to use in saving audit records
-		ctx2 := metadata.Set(ctx, "UserID", claims.User.ID)
+		ctx2 := metadata.Set(ctx, "UserID", claims.ID)
 
 		return fn(ctx2, req, rsp)
 	}
@@ -145,11 +145,19 @@ func main() {
 	broker := broker.New(microBroker.DefaultBroker)
 	defer broker.Disconnect()
 
+	var handlerOpts []handler.UsersHandlerOption
 	// audit
-	audit := &audit.Audit{Broker: broker}
+	if srvConfigs.EnableAuditRecords {
+		handlerOpts = append(handlerOpts, handler.WithAudit(&audit.Audit{Broker: broker}))
+	}
+
+	usersHandler, err := handler.NewUsersHandler(db, jwtManager, handlerOpts...)
+	if err != nil {
+		logger.Fatalf("Error new handler: %v", err)
+	}
 
 	// Register handler
-	if err := pb.RegisterUsersHandler(srv.Server(), handler.NewUsersHandler(db, jwtManager, audit)); err != nil {
+	if err := pb.RegisterUsersHandler(srv.Server(), usersHandler); err != nil {
 		logger.Fatalf("Error registering handler: %v", err)
 	}
 

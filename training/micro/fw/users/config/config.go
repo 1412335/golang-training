@@ -6,8 +6,9 @@ import (
 )
 
 type ServiceConfig struct {
-	JWT      *JWT
-	Database *config.Database
+	JWT                *JWT
+	Database           *config.Database
+	EnableAuditRecords bool
 }
 
 // json web token

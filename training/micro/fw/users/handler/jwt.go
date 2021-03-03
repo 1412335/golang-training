@@ -25,7 +25,10 @@ func NewJWTManager(cfg *config.JWT) *JWTManager {
 
 type UserClaims struct {
 	jwt.StandardClaims
-	User *User
+	ID        string
+	FirstName string
+	LastName  string
+	Email     string
 }
 
 func (manager *JWTManager) Generate(user *User) (string, error) {
@@ -36,7 +39,10 @@ func (manager *JWTManager) Generate(user *User) (string, error) {
 			IssuedAt:  current.Unix(),
 			Issuer:    manager.issuer,
 		},
-		User: user,
+		ID:        user.ID,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -54,11 +60,8 @@ func (manager *JWTManager) Verify(accessToken string) (*UserClaims, error) {
 			return manager.secretKey, nil
 		},
 	)
-	if err != nil {
+	if err != nil || !token.Valid {
 		return nil, fmt.Errorf("invalid token: %+v", err)
-	}
-	if !token.Valid {
-		return nil, fmt.Errorf("invalid token")
 	}
 	claims, ok := token.Claims.(*UserClaims)
 	if !ok || claims.Issuer != manager.issuer {

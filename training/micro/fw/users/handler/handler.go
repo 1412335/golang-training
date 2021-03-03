@@ -2,10 +2,8 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"regexp"
 	"strings"
-	"time"
 
 	"gorm.io/gorm"
 
@@ -65,74 +63,32 @@ func compareHash(hash, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 }
 
-type User struct {
-	ID        string
-	FirstName string
-	LastName  string
-	ValidFrom time.Time
-	ValidTo   time.Time
-	Active    bool
-	Password  string
-	Name      string
-	Email     string `gorm:"uniqueIndex"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	audit     *audit.Audit `gorm:"-" json:"-"`
-}
+type UsersHandlerOption func(h *usersHandler) error
 
-func (u *User) sanitize() *pb.User {
-	return &pb.User{}
-}
-
-func (u *User) BeforeCreate(tx *gorm.DB) error {
-	logger.Infof("before create")
-	return nil
-}
-
-func (u *User) AfterCreate(tx *gorm.DB) error {
-	ctx := tx.Statement.Context
-	err := u.sendUserAudit(ctx, "Users", "AfterCreate", "insert", "user", u.ID)
-	if err != nil {
-		logger.Errorf("Call AfterCreate failed: %v", err)
+func WithAudit(audit *audit.Audit) UsersHandlerOption {
+	return func(h *usersHandler) error {
+		h.audit = audit
+		return nil
 	}
-	return nil
-}
-
-func (u *User) BeforeUpdate(tx *gorm.DB) error {
-	logger.Infof("before update")
-	return nil
-}
-
-// Updating data in same transaction
-func (u *User) AfterUpdate(tx *gorm.DB) error {
-	ctx := tx.Statement.Context
-	err := u.sendUserAudit(ctx, "Users", "AfterUpdate", "insert", "user", u.ID)
-	if err != nil {
-		logger.Errorf("Call AfterUpdate failed: %v", err)
-	}
-	return nil
-}
-
-func (u *User) sendUserAudit(ctx context.Context, serviceName, actionFunc, actionType string, objectName string, iObjectId string) error {
-	bytes, err := json.Marshal(u)
-	if err != nil {
-		return errors.InternalServerError("ENCODE_ERROR", "encode user error")
-	}
-	return u.audit.Send(ctx, serviceName, actionFunc, actionType, objectName, iObjectId, bytes)
 }
 
 type usersHandler struct {
-	DB         *gorm.DB
-	JWTManager *JWTManager
-	audit      *audit.Audit
+	DB       *gorm.DB
+	tokenSrv *JWTManager
+	audit    *audit.Audit
 }
 
-func NewUsersHandler(db *gorm.DB, jwtManager *JWTManager, audit *audit.Audit) *usersHandler {
-	return &usersHandler{
-		DB:         db,
-		JWTManager: jwtManager,
-		audit:      audit,
+func NewUsersHandler(db *gorm.DB, jwtManager *JWTManager, opts ...UsersHandlerOption) (*usersHandler, error) {
+	h := &usersHandler{
+		DB:       db,
+		tokenSrv: jwtManager,
 	}
+	for _, opt := range opts {
+		if err := opt(h); err != nil {
+			return nil, err
+		}
+	}
+	return h, nil
 }
 
 func (h *usersHandler) Create(ctx context.Context, req *pb.CreateRequest, rsp *pb.CreateResponse) error {
@@ -163,9 +119,13 @@ func (h *usersHandler) Create(ctx context.Context, req *pb.CreateRequest, rsp *p
 			ID:        uuid.New().String(),
 			FirstName: req.FirstName,
 			LastName:  req.LastName,
+			Active:    false,
 			Email:     strings.ToLower(req.Email),
 			Password:  pwdHashed,
-			audit:     h.audit,
+		}
+		// TODO: not pass audit to user, can pass to db context
+		if h.audit != nil {
+			user.audit = h.audit
 		}
 		if err := tx.Create(user).Error; err != nil && strings.Contains(err.Error(), "idx_users_email") {
 			return ErrDuplicateEmail
@@ -175,7 +135,7 @@ func (h *usersHandler) Create(ctx context.Context, req *pb.CreateRequest, rsp *p
 		}
 
 		// create token
-		token, err := h.JWTManager.Generate(user)
+		token, err := h.tokenSrv.Generate(user)
 		if err != nil {
 			logger.Errorf("Error gen token: %v", err)
 			return ErrTokenGenerated
@@ -233,6 +193,11 @@ func (h *usersHandler) Update(ctx context.Context, req *pb.UpdateRequest, rsp *p
 		user.Password = pwdHashed
 	}
 
+	// TODO: not pass audit to user, can pass to db context
+	if h.audit != nil {
+		user.audit = h.audit
+	}
+
 	if err := h.DB.WithContext(ctx).Save(user).Error; err != nil && strings.Contains(err.Error(), "idx_users_email") {
 		return ErrDuplicateEmail
 	} else if err != nil {
@@ -269,7 +234,7 @@ func (h *usersHandler) Login(ctx context.Context, req *pb.LoginRequest, rsp *pb.
 		}
 
 		// generate token
-		token, err := h.JWTManager.Generate(&user)
+		token, err := h.tokenSrv.Generate(&user)
 		if err != nil {
 			logger.Errorf("Error gen token: %v", err)
 			return ErrTokenGenerated
@@ -306,12 +271,15 @@ func (h *usersHandler) Validate(ctx context.Context, req *pb.ValidateRequest, rs
 	}
 	return h.DB.Transaction(func(tx *gorm.DB) error {
 		// verrify token
-		claims, err := h.JWTManager.Verify(req.Token)
+		claims, err := h.tokenSrv.Verify(req.Token)
 		if err != nil {
 			return ErrTokenInvalid
 		}
 
-		rsp.User = claims.User.sanitize()
+		rsp.Id = claims.ID
+		rsp.FirstName = claims.FirstName
+		rsp.LastName = claims.LastName
+		rsp.Email = claims.Email
 		return nil
 	})
 }

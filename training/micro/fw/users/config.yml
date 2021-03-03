@@ -10,3 +10,4 @@ database:
   password: "root"
   dbName: "users"
   debug: false
+enableAuditRecords: true
