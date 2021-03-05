@@ -16,6 +16,7 @@ proto:
 .PHONY: fmt
 fmt:
 	go fmt ./...
+	# go fmt -mod=readonly ./...
 
 # linter
 .PHONY: lint
@@ -40,7 +41,7 @@ micrologin:
 # running single service
 .PHONY: microstartusersrv
 microstartusersrv:
-	micro run --env_vars "CONFIG_FILE=$$PWD/users/config.yml,MICRO_BROKER=nats,MICRO_BROKER_ADDRESS=natsUser:T0pS3cr3t@localhost" --name users users/server
+	micro run --env_vars "CONFIG_FILE=$$PWD/users/config.yml,MICRO_BROKER=nats,MICRO_BROKER_ADDRESS=natsUser:T0pS3cr3t@localhost,MICRO_STORE=redis,MICRO_STORE_ADDRESS=redis://:T0pS3cr3t@localhost:6378" --name users users/server
 
 .PHONY: microstartauditsrv
 microstartauditsrv:

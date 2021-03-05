@@ -4,12 +4,14 @@ import (
 	"context"
 	"fw/pkg/audit"
 	"fw/pkg/broker"
+	"fw/pkg/cache"
 	pkgConfig "fw/pkg/config"
 	"fw/pkg/dal/postgres"
 	"fw/users/config"
 	"fw/users/handler"
 	pb "fw/users/proto"
 	"os"
+	"time"
 	// "time"
 	// "path/filepath"
 	"strings"
@@ -21,22 +23,30 @@ import (
 	"github.com/micro/micro/v3/service/errors"
 	"github.com/micro/micro/v3/service/logger"
 	"github.com/micro/micro/v3/service/server"
+	microStore "github.com/micro/micro/v3/service/store"
 	// "github.com/asim/go-micro/v3/config"
 	// // "github.com/asim/go-micro/v3/config/source"
 	// "github.com/asim/go-micro/v3/config/source/env"
 	// "github.com/asim/go-micro/v3/config/source/file"
 	// "gorm.io/driver/postgres"
 	// "gorm.io/gorm"
+
+	// redisStore "github.com/micro/go-plugins/store/redis"
+	redisStore "fw/pkg/store/redis"
+)
+
+var (
+	SERVICE_NAME = "users" //$MICRO_SERVICE_NAME
 )
 
 type Authentication struct {
-	jwtManager *handler.JWTManager
+	tokenSrv *handler.JWTManager
 }
 
 func (a *Authentication) AuthWrapper(fn server.HandlerFunc) server.HandlerFunc {
 	return func(ctx context.Context, req server.Request, rsp interface{}) error {
 		// User login or create
-		if req.Endpoint() == "Users.Create" || req.Endpoint() == "Users.Auth" {
+		if req.Endpoint() == "Users.Create" || req.Endpoint() == "Users.Login" || req.Endpoint() == "Users.Validate"{
 			// TEST
 			ctx2 := metadata.Set(ctx, "UserID", "1111")
 			return fn(ctx2, req, rsp)
@@ -63,7 +73,7 @@ func (a *Authentication) AuthWrapper(fn server.HandlerFunc) server.HandlerFunc {
 		logger.Infof("Endpoint: %v", req.Endpoint())
 
 		// validate token
-		claims, err := a.jwtManager.Verify(token)
+		claims, err := a.tokenSrv.Verify(token)
 		if err != nil {
 			return errors.Unauthorized("AUTH_INCORRECT", "")
 		}
@@ -110,15 +120,15 @@ func main() {
 	// load config
 	srvConfigs := loadConfig()
 	// jwtManager
-	jwtManager := handler.NewJWTManager(srvConfigs.JWT)
+	tokenSrv := handler.NewJWTManager(srvConfigs.JWT)
 	//
 	auth := Authentication{
-		jwtManager: jwtManager,
+		tokenSrv: tokenSrv,
 	}
 
 	// Create service
 	srv := service.New(
-		service.Name("users"),
+		service.Name(SERVICE_NAME),
 		service.Version("latest"),
 		service.WrapHandler(auth.AuthWrapper),
 	)
@@ -150,8 +160,17 @@ func main() {
 	if srvConfigs.EnableAuditRecords {
 		handlerOpts = append(handlerOpts, handler.WithAudit(&audit.Audit{Broker: broker}))
 	}
+	// setup micro store
+	microStore.DefaultStore = redisStore.NewStore(microStore.Nodes(os.Getenv("MICRO_STORE_ADDRESS")))
+	// redis cache
+	cacheStore, err := cache.NewCache(microStore.DefaultStore, cache.WithPrefix(SERVICE_NAME), cache.WithExpiryDuration(1000*time.Second))
+	if err != nil {
+		logger.Fatalf("Error new cache store with redis: %v", err)
+	}
+	defer cacheStore.Close()
+	handlerOpts = append(handlerOpts, handler.WithCacheStore(cacheStore))
 
-	usersHandler, err := handler.NewUsersHandler(db, jwtManager, handlerOpts...)
+	usersHandler, err := handler.NewUsersHandler(db, tokenSrv, handlerOpts...)
 	if err != nil {
 		logger.Fatalf("Error new handler: %v", err)
 	}

@@ -19,7 +19,7 @@ type User struct {
 	ValidFrom time.Time
 	ValidTo   time.Time
 	Active    bool
-	Password  string
+	Password  string `json:"-"`
 	Email     string `gorm:"uniqueIndex"`
 	CreatedAt time.Time
 	UpdatedAt time.Time

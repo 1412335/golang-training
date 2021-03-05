@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"regexp"
 	"strings"
 
@@ -14,6 +15,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"fw/pkg/audit"
+	"fw/pkg/cache"
 	pb "fw/users/proto"
 )
 
@@ -72,10 +74,24 @@ func WithAudit(audit *audit.Audit) UsersHandlerOption {
 	}
 }
 
+func WithCacheStore(cache *cache.Cache) UsersHandlerOption {
+	return func(h *usersHandler) error {
+		h.cache = cache
+		return nil
+	}
+}
+
+func EnableStore(h *usersHandler) error {
+	// h.store = store.DefaultStore
+	return nil
+}
+
 type usersHandler struct {
 	DB       *gorm.DB
 	tokenSrv *JWTManager
 	audit    *audit.Audit
+	cache    *cache.Cache
+	// store    store.Store
 }
 
 func NewUsersHandler(db *gorm.DB, jwtManager *JWTManager, opts ...UsersHandlerOption) (*usersHandler, error) {
@@ -240,6 +256,13 @@ func (h *usersHandler) Login(ctx context.Context, req *pb.LoginRequest, rsp *pb.
 			return ErrTokenGenerated
 		}
 
+		// redis cache
+		if bytes, err := json.Marshal(user); err != nil {
+			logger.Errorf("Unable to encode user: %v", err)
+		} else if err := h.cache.Set(user.ID, string(bytes)); err != nil {
+			logger.Errorf("Unable to cache user: %v", err)
+		}
+
 		rsp.User = user.sanitize()
 		rsp.Token = token
 
@@ -273,6 +296,7 @@ func (h *usersHandler) Validate(ctx context.Context, req *pb.ValidateRequest, rs
 		// verrify token
 		claims, err := h.tokenSrv.Verify(req.Token)
 		if err != nil {
+			logger.Errorf("Token valid: %v", err)
 			return ErrTokenInvalid
 		}
 
@@ -280,6 +304,18 @@ func (h *usersHandler) Validate(ctx context.Context, req *pb.ValidateRequest, rs
 		rsp.FirstName = claims.FirstName
 		rsp.LastName = claims.LastName
 		rsp.Email = claims.Email
+
+		// redis get
+		userStr, err := h.cache.Get(claims.ID)
+		if err != nil {
+			logger.Errorf("Unable to cache user: %v", err)
+		}
+		var user User
+		if err := json.Unmarshal([]byte(userStr), &user); err != nil {
+			logger.Errorf("Decode user failed: %v", err)
+		}
+		logger.Infof("User in cache: %+v", user)
+
 		return nil
 	})
 }
